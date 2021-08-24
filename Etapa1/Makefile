@@ -1,16 +1,17 @@
-SHELL			= /bin/bash
+SHELL           = /bin/bash
 
-BIN				= IncredibleTvitter
+BIN             = IncredibleTvitter
 
-SRC_FOLDER		= ./src
-INC_FOLDER		= ./include
-BUILD_FOLDER	= ./build
+SRC_FOLDER      = ./src
+INC_FOLDER      = ./include
+TP_INC_FOLDER   = ./include/third_party
+BUILD_FOLDER    = ./build
 
-CXX				= g++
-CXX_FLAGS		= -std=c++11 -g -Wall -I$(INC_FOLDER)
+CXX             = g++
+CXX_FLAGS       = -std=c++11 -g -Wall -I$(INC_FOLDER) -I$(TP_INC_FOLDER)
 
-SRC_FILES		= $(wildcard $(SRC_FOLDER)/*.cpp)
-OBJ_FILES		= $(patsubst $(SRC_FOLDER)/%.cpp, $(BUILD_FOLDER)/%.o, $(SRC_FILES))
+SRC_FILES       = $(wildcard $(SRC_FOLDER)/*.cpp)
+OBJ_FILES       = $(patsubst $(SRC_FOLDER)/%.cpp, $(BUILD_FOLDER)/%.o, $(SRC_FILES))
 
 .PHONY: all build clean
 
