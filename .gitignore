@@ -1,3 +1,4 @@
 .vscode
 build
-IncredibleTvitter
+app_client
+app_server

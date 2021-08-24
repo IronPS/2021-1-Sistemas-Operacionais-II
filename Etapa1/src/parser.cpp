@@ -1,16 +1,17 @@
 
 #include <parser.hpp>
 
-cxxopts::ParseResult parse(int argc, char* argv[]) {
+cxxopts::ParseResult parseClient(int argc, char* argv[]) {
     cxxopts::Options options("IncrebileTvitter", "Welcome to IncredibleTviter!");
 
     // Add options here
     options.add_options()
         ("h,help", "Print usage")
-        ("s,server", "If set, the program will execute as a server", cxxopts::value<bool>()->default_value("false"))
         ("u,user", "Username with which to sign in", cxxopts::value<std::string>())
+        ("s,server", "Server address (IPV4)", cxxopts::value<std::string>()->default_value("127.0.0.1"))
         ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
     ;
+    options.parse_positional({"user", "server", "port"});
 
     // Input parsing block
     cxxopts::ParseResult result;
@@ -43,38 +44,11 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
     bool error = false;
     std::stringstream errorMessage;
 
-    // Server or Username must be provided for a valid execution
-    if (result.count("server") == 0 && result.count("user") == 0) {
-        errorMessage << "Error: Execution requires that either an username be provided "
-        << "or that the server flag be set."
-        << std::endl;
-
-        error = true;
-    }
-
-    // Or Server or Username execution type
-    if (result.count("server") > 0 && result.count("user") > 0) {
-        errorMessage << "Error: Username was provided for a server, "
-        << "but servers and clients are mutually exclusive. "
-        << "Please, execute either as a user or as a server."
-        << std::endl;
-
-        error = true;
-    }
-
-    // Server flag can be set only once
-    if (result.count("server") > 1) {
-        errorMessage << "Error: Server flag was set more than once." << std::endl;
-        error = true;
-    }
-
-    // Port can be set only once
-    if (result.count("port") > 1) {
-        errorMessage << "Error: Port setting is provided more than once." << std::endl;
-        error = true;
-    }
-
     // Username checking block
+    if (result.count("user") == 0) {
+        errorMessage << "Error: Username must be provided" << std::endl;
+        error = true;
+    }
     if (result.count("user")) {
         if (result.count("user") == 1) {
             auto username = result["user"].as<std::string>();
@@ -111,6 +85,90 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
             errorMessage << "Error: more than one username was provided." << std::endl;
             error = true;
         }
+    }
+
+    // Server address can be set only once
+    if (result.count("server") > 1) {
+        errorMessage << "Error: Server address was set more than once." << std::endl;
+        error = true;
+    }
+
+    if (result.count("server")) {
+        auto server = result["server"].as<std::string>();
+
+        bool invalid = !std::regex_match(server, std::regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"));
+        
+        if (invalid) {
+            errorMessage << "Error: Provided server address '"
+            << server
+            << "' is invalid." << std::endl;
+
+            error = true;
+        }
+    }
+
+    // Port can be set only once
+    if (result.count("port") > 1) {
+        errorMessage << "Error: Port setting is provided more than once." << std::endl;
+        error = true;
+    }
+
+    // If an error was encountered, prints the errors and exits
+    if (error) {
+        std::cerr << errorMessage.str() 
+        << "Finishing execution."
+        << std::endl;
+        exit(0);
+    }
+    
+    // Input sanity check finished
+    return result;
+}
+
+cxxopts::ParseResult parseServer(int argc, char* argv[]) {
+    cxxopts::Options options("IncrebileTvitter", "Welcome to IncredibleTviter Server!");
+
+    // Add options here
+    options.add_options()
+        ("h,help", "Print usage")
+        ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
+    ;
+
+    // Input parsing block
+    cxxopts::ParseResult result;
+    try {
+        result = options.parse(argc, argv);
+        
+    } catch (const cxxopts::OptionSpecException& e) {
+        std::cerr << "Error while parsing options:\n"
+        << e.what() << std::endl;
+        exit(1);
+
+    } catch (const cxxopts::OptionParseException& e) {
+        std::cerr << "Error while parsing options:\n"
+        << e.what() << std::endl;
+        exit(1);
+    } catch (...) {
+        std::cerr << "Error while parsing options:\n"
+        << "Unexpected exception occurred at parser." << std::endl;
+        exit(1);
+    }
+
+    // If the help flag was set, prints the help message and exits
+    if (result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        exit(0);
+    }
+
+    // Start of the sanity check block
+    bool error = false;
+    std::stringstream errorMessage;
+
+    // Port can be set only once
+    if (result.count("port") > 1) {
+        errorMessage << "Error: Port setting is provided more than once." << std::endl;
+        error = true;
     }
 
     // If an error was encountered, prints the errors and exits
