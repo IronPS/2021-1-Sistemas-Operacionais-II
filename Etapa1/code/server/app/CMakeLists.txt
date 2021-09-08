@@ -11,14 +11,13 @@ set(SOURCES
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories( ${PROJECT_NAME}
-    PRIVATE
-	    include
-	    "${PROJECT_BINARY_DIR}/include"
+    PRIVATE include
+	PRIVATE "${PROJECT_BINARY_DIR}/include"
+)
+
+target_link_libraries(${PROJECT_NAME} 
+    PRIVATE ServerApp-ConnectionManager
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${INSTALL_DIR})
 
-# Not needed yet
-# target_link_libraries(${PROJECT_NAME} 
-# 	PRIVATE libraryname
-# )

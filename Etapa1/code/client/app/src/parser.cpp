@@ -10,8 +10,8 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
         ("s,server", "Server address (IPV4)", cxxopts::value<std::string>()->default_value("127.0.0.1"))
         ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
     ;
-    options.parse_positional({"user", "server", "port"});
-
+    // options.parse_positional({"user", "server", "port"});
+    
     // Input parsing block
     cxxopts::ParseResult result;
     try {
