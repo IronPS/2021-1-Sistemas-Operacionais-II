@@ -1,4 +1,3 @@
 .vscode
 build
-app_client
-app_server
+bin

@@ -2,6 +2,6 @@
 #include <parser.hpp>
 
 int main(int argc, char* argv[]) {
-    auto results = parseClient(argc, argv);
+    auto results = parse(argc, argv);
 
 }
