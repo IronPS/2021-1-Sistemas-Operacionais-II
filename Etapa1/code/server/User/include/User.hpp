@@ -14,6 +14,7 @@ class User {
 
     std::string name() { return _name; }
     unsigned int id() { return _ID; }
+    std::set<std::string> followers() { return _followers; }
 
     void addFollower(std::string follower);
     

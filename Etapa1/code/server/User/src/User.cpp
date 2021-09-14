@@ -11,7 +11,7 @@ User::~User() {
 }
 
 void User::addFollower(std::string follower) {
-
+    _followers.insert(follower);
 }
 
 std::ostream& operator<<(std::ostream& os, const User& user) {
