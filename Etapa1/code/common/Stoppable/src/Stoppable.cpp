@@ -3,7 +3,7 @@
 
 bool signaling::_continue = true;
 static void _kill(int) { signaling::_continue = false; }
-static void _handler(int) { std::cout << "Server Heartbeat" << std::endl; }
+static void _handler(int) { std::cout << "Heartbeat" << std::endl; }
 
 static struct sigaction sact;
 

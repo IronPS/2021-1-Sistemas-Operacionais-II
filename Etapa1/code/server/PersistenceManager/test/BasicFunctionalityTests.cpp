@@ -159,7 +159,6 @@ TEST(PersistenceManager, TwoUsersWithFollowers) {
     EXPECT_TRUE(user.id() == 1);
     EXPECT_TRUE(user.name() == "user1");
     EXPECT_TRUE(user.followers().size() == 1);
-
     
 }
 

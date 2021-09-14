@@ -1,15 +1,20 @@
 
 #include <parser.hpp>
 #include <ServerConnectionManager.hpp>
+#include <PersistenceManager.hpp>
 #include <signal.h>
 #include <Stoppable.hpp>
 
 int main(int argc, char* argv[]) {
+    Stoppable stop;
 
     auto results = parse(argc, argv);
 
+    PersistenceManager pm("db.db");
+
     ServerConnectionManager cm(results);
     
+
     int csfd = -1;
 
     while (signaling::_continue) {

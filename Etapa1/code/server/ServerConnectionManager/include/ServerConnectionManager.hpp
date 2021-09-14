@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Stoppable.hpp>
 #include <string>
 
 #include <cxxopts/cxxopts.hpp>
@@ -10,7 +9,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-class ServerConnectionManager : Stoppable {
+class ServerConnectionManager {
  public:
     /*
      * Creates a listening port

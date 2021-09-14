@@ -28,7 +28,6 @@ PersistenceManager::~PersistenceManager() {
 }
 
 User PersistenceManager::loadUser(std::string username) {
-
     // lock
 
     std::string search = username + ",";

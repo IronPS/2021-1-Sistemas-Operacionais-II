@@ -18,9 +18,12 @@ class User {
 
     void addFollower(std::string follower);
     
+    /*
+     * Serializes User to string format compatible with the persistence
+     */
     friend std::ostream& operator<<(std::ostream& os, const User& user);
 
- private:
+ protected:
     std::string _name;
     unsigned int _ID = 0;
     std::set<std::string> _followers;
