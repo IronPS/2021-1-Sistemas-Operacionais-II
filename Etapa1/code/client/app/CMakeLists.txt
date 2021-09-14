@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.17)
 
 project(ClientApp VERSION 0.0.0)
 
@@ -19,5 +19,5 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE ClientApp-ConnectionManager
 )
 
-install(TARGETS ${PROJECT_NAME} DESTINATION ${INSTALL_DIR})
+install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJ_INSTALL_DIR})
 

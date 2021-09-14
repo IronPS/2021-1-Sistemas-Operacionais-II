@@ -2,7 +2,7 @@
 
 ## Dependências
  - Linux
- - CMake 3.10+
+ - CMake 3.17+
  - C++11
 
 ## Compilação e instalação
@@ -26,4 +26,16 @@ cmake --build . -j4
  4. "Instale" os binários no diretório ```Etapa1/bin/``` (na prática ele apenas copia os binários para a pasta)
 ```
 cmake --install .
+```
+
+## Teste
+Os testes automáticos são executados a partir do diretório de compilação
+```
+cd build
+ctest
+```
+
+Para executá-los em modo verbose, adiciona a flag ```--verbose```
+```
+ctest --verbose
 ```

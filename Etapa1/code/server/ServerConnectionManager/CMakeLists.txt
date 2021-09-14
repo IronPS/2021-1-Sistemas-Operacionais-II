@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.17)
 
 project(ServerApp-ConnectionManager VERSION 0.0.0)
 

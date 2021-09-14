@@ -1,10 +1,10 @@
 
 cmake_minimum_required(VERSION 3.17)
 
-project(ClientApp-ConnectionManager VERSION 0.0.0)
+project(ServerApp-User VERSION 0.0.0)
 
 set(SOURCES
-    src/ClientConnectionManager.cpp
+    src/User.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.17)
 
 add_subdirectory(ServerConnectionManager)
+add_subdirectory(PersistenceManager)
+add_subdirectory(User)
 add_subdirectory(app)
