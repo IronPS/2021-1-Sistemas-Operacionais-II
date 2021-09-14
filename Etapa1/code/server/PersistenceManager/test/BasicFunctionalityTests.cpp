@@ -81,3 +81,37 @@ TEST(PersistenceManager, LoadExistent) {
     
 }
 
+TEST(PersistenceManager, LoadExistentMiddle) {
+    std::string dbname = "databases/threeUsers.db";
+    PersistenceManager pm(copy_to_tmp(dbname));
+    User user = pm.loadUser("user1");
+
+    std::string db = load_file(dbname);
+    std::string gt = load_GT("threeUsers.txt");
+
+    EXPECT_TRUE(gt.size() > 0);
+    EXPECT_TRUE(db.size() > 0);
+    EXPECT_TRUE(db == gt);
+
+    EXPECT_TRUE(user.id() == 1);
+    EXPECT_TRUE(user.name() == "user1");
+    
+}
+
+TEST(PersistenceManager, ThreeUsersCreateOne) {
+    std::string dbname = "databases/threeUsers.db";
+    PersistenceManager pm(copy_to_tmp(dbname));
+    User user = pm.loadUser("user3");
+
+    std::string db = load_file(dbname);
+    std::string gt = load_GT("threeUsersPlusOne.txt");
+
+    EXPECT_TRUE(gt.size() > 0);
+    EXPECT_TRUE(db.size() > 0);
+    EXPECT_TRUE(db == gt);
+
+    EXPECT_TRUE(user.id() == 3);
+    EXPECT_TRUE(user.name() == "user3");
+    
+}
+

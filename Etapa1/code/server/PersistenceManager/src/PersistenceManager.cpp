@@ -6,7 +6,7 @@ PersistenceManager::PersistenceManager(std::string databasePath) {
     if(infile.good()) { // File exists
         infile.close();
 
-        _dbFile.open(databasePath, std::fstream::in | std::fstream::out | std::fstream::app);
+        _dbFile.open(databasePath, std::fstream::in | std::fstream::out);
         
     } else { // File doesn't exist
         infile.close();
@@ -72,7 +72,7 @@ User PersistenceManager::loadUser(std::string username) {
     }
 
     _dbFile.clear(); // Clear errors (?)
-    
+
     // unlock
 
     return user;
