@@ -14,7 +14,6 @@ target_include_directories( ${PROJECT_NAME}
 	PRIVATE "${PROJECT_BINARY_DIR}/include"
 )
 
-# Not needed yet
-# target_link_libraries(${PROJECT_NAME} 
-# 	PRIVATE libraryname
-# )
+target_link_libraries(${PROJECT_NAME} 
+	PUBLIC Common-Stoppable
+)

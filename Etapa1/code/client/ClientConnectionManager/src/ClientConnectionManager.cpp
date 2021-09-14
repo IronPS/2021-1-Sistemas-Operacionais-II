@@ -88,9 +88,13 @@ void ClientConnectionManager::dataReceive() {
 
     memset(recvBuff, '0', sizeof(recvBuff));
 
-    while ( (n = read(socketDesc, recvBuff, sizeof(recvBuff)-1)) > 0)
+    do
     {
-        recvBuff[n] = 0;
-        std::cout<< "recvBuff=" << recvBuff << std::endl;
-    }
+        n = read(socketDesc, recvBuff, sizeof(recvBuff)-1);
+        if (n > 0) {
+            recvBuff[n] = 0;
+            std::cout<< "recvBuff=" << recvBuff << std::endl;
+        }
+    } while (n > 0);
+    
 }
