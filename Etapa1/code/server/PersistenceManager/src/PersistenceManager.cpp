@@ -1,7 +1,9 @@
 
 #include <PersistenceManager.hpp>
 
-PersistenceManager::PersistenceManager(std::string databasePath) {
+PersistenceManager::PersistenceManager(std::string databasePath)
+: _sem(1)
+{
     std::ifstream infile(databasePath);
     if(infile.good()) { // File exists
         infile.close();
@@ -28,7 +30,7 @@ PersistenceManager::~PersistenceManager() {
 }
 
 User PersistenceManager::loadUser(std::string username) {
-    // lock
+    _sem.wait();
 
     std::string search = username + ",";
 
@@ -72,19 +74,19 @@ User PersistenceManager::loadUser(std::string username) {
 
     _dbFile.clear(); // Clear errors (?)
 
-    // unlock
+    _sem.notify();
 
     return user;
 
 }
 
 void PersistenceManager::saveUser(User& user) {
-    // lock
+    _sem.wait();
 
     _privateSaveUser(user);
 
 
-    // unlock
+    _sem.notify();
 }
 
 void PersistenceManager::_privateSaveUser(User& user) {

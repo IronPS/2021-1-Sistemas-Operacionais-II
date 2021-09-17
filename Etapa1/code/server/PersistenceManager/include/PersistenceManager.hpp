@@ -2,6 +2,7 @@
 #pragma once
 
 #include <User.hpp>
+#include <Semaphore.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -17,6 +18,7 @@ class PersistenceManager {
 
  private:
     std::fstream _dbFile;
+    Semaphore _sem;
 
     void _privateSaveUser(User& user);
     void _setFollowers(User& user, std::set<std::string> followers);

@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <Semaphore.hpp>
+
 #include <User.hpp>
 #include <PersistenceManager.hpp>
 
@@ -13,5 +15,6 @@ class PersistentUser : User {
 
  private:
     PersistenceManager& _pm;
+    Semaphore _sem;
 };
 
