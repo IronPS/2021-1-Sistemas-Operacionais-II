@@ -3,6 +3,7 @@
 #include <string>
 
 #include <cxxopts/cxxopts.hpp>
+#include <PacketTypes.hpp>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -19,17 +20,15 @@ class ClientConnectionManager {
     ClientConnectionManager(const cxxopts::ParseResult& input);
     ~ClientConnectionManager();
 
-    // TODO
-    void dataSend();
-    // TODO
-    void dataReceive();
+    ssize_t dataSend(PacketData::packet_t packet);
+    ssize_t dataReceive(PacketData::packet_t& packet);
 
  private:
-    std::string user;
-    std::string server;
-    std::string port;
+    std::string _user;
+    std::string _server;
+    std::string _port;
 
-    int socketDesc = -1;
+    int _socketDesc = -1;
 
     void _openConnection();
 };

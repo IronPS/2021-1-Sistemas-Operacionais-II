@@ -21,10 +21,11 @@ int main(int argc, char* argv[]) {
         csfd = cm.getConnection();
 
         if (csfd != -1) {
-            const std::string response = "Hello World";
-            auto bytes_sent = send(csfd, response.c_str(), response.length()+1, 0);
+            PacketData::packet_t packet;
+            strcpy(packet.payload, "Hello World 2!");
+            auto bytes = ServerConnectionManager::dataSend(csfd, packet);
 
-            std::cout << "Sent " << bytes_sent << " bytes" << std::endl;
+            std::cout << "Sent " << bytes << " bytes" << std::endl;
 
             ServerConnectionManager::closeConnection(csfd);
             // TODO create thread for Client treatment

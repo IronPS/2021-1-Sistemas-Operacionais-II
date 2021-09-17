@@ -2,9 +2,9 @@
 #include <ClientConnectionManager.hpp>
 
 ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& input) {
-    user = input["user"].as<std::string>();
-    server = input["server"].as<std::string>();
-    port = std::to_string(input["port"].as<unsigned short>());
+    _user = input["user"].as<std::string>();
+    _server = input["server"].as<std::string>();
+    _port = std::to_string(input["port"].as<unsigned short>());
     
     _openConnection();
 
@@ -12,8 +12,8 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
 
 
 ClientConnectionManager::~ClientConnectionManager() {
-    if (socketDesc != -1) {
-        close(socketDesc);
+    if (_socketDesc != -1) {
+        close(_socketDesc);
     }
 }
 
@@ -27,8 +27,8 @@ void ClientConnectionManager::_openConnection() {
     hints.ai_flags = 0;
     hints.ai_protocol = IPPROTO_TCP;
     err = getaddrinfo (
-        server.c_str(),
-        port.c_str(),
+        _server.c_str(),
+        _port.c_str(),
         &hints,
         &addrs
     );
@@ -41,24 +41,24 @@ void ClientConnectionManager::_openConnection() {
     }
 
     for (struct addrinfo* addrpt = addrs; addrpt != NULL; addrpt = addrpt->ai_next) {
-        socketDesc = socket(addrpt->ai_family, addrpt->ai_socktype, addrpt->ai_protocol);
+        _socketDesc = socket(addrpt->ai_family, addrpt->ai_socktype, addrpt->ai_protocol);
 
-        if (socketDesc == -1) {
+        if (_socketDesc == -1) {
             err = errno;
             break;
         }
 
-        if (connect(socketDesc, addrpt->ai_addr, addrpt->ai_addrlen) == 0)
+        if (connect(_socketDesc, addrpt->ai_addr, addrpt->ai_addrlen) == 0)
             break;
 
         err = errno;
 
-        close(socketDesc);
+        close(_socketDesc);
     }
 
     freeaddrinfo(addrs);
 
-    if (socketDesc == -1) {
+    if (_socketDesc == -1) {
         std::cerr << "Connection error: "
         << strerror(err)
         << std::endl;
@@ -75,26 +75,14 @@ void ClientConnectionManager::_openConnection() {
 
 }
 
-// TODO
-void ClientConnectionManager::dataSend() {
-    // Placeholder 
+ssize_t ClientConnectionManager::dataSend(PacketData::packet_t packet) {
+    auto bytes_sent = send(_socketDesc, (void*) &packet, sizeof(PacketData::packet_t), 0);
+
+    return bytes_sent;
 }
 
-// TODO
-void ClientConnectionManager::dataReceive() {
-    // Placeholder 
-    int n = 0;
-    char recvBuff[1024];
+ssize_t ClientConnectionManager::dataReceive(PacketData::packet_t& packet) {
+    auto bytes_received = read(_socketDesc, &packet, sizeof(PacketData::packet_t));
 
-    memset(recvBuff, '0', sizeof(recvBuff));
-
-    do
-    {
-        n = read(socketDesc, recvBuff, sizeof(recvBuff)-1);
-        if (n > 0) {
-            recvBuff[n] = 0;
-            std::cout<< "recvBuff=" << recvBuff << std::endl;
-        }
-    } while (n > 0);
-    
+    return bytes_received;
 }

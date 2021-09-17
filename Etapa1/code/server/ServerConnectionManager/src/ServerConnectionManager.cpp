@@ -34,7 +34,7 @@ void ServerConnectionManager::_bindListeningSocket() {
         &hints,
         &addrs
     );
-
+    
     if (err != 0) {
         std::cerr << "Error at getaddrinfo: "
         << gai_strerror(err)
@@ -106,12 +106,14 @@ int ServerConnectionManager::getConnection() {
 
 }
 
-// TODO
-void ServerConnectionManager::dataSend() {
+ssize_t ServerConnectionManager::dataSend(int sfd, PacketData::packet_t packet) {
+    auto bytes_sent = send(sfd, (void*) &packet, sizeof(PacketData::packet_t), 0);
 
+    return bytes_sent;
 }
 
-// TODO
-void ServerConnectionManager::dataReceive() {
+ssize_t ServerConnectionManager::dataReceive(int sfd, PacketData::packet_t& packet) {
+    auto bytes_received = read(sfd, (void*) &packet, sizeof(PacketData::packet_t));
 
+    return bytes_received;
 }

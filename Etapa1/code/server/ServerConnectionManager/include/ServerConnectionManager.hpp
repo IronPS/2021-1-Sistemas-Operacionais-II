@@ -1,8 +1,10 @@
 #pragma once
 
+
 #include <string>
 
 #include <cxxopts/cxxopts.hpp>
+#include <PacketTypes.hpp>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -26,10 +28,8 @@ class ServerConnectionManager {
 
     static void closeConnection(int sfd);
 
-    // TODO
-    void dataSend();
-    // TODO
-    void dataReceive();
+    static ssize_t dataSend(int sfd, PacketData::packet_t packet);
+    static ssize_t dataReceive(int sfd, PacketData::packet_t& packet);
 
  private:
     std::string _port;
