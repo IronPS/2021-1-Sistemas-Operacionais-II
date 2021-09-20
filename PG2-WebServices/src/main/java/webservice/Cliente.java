@@ -52,7 +52,7 @@ public class Cliente {
         		serv.accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
         
         String respostaServicoStr = respostaServ.getEntity(String.class);
-        System.out.println("Resposta da : " + respostaServicoStr);
+        System.out.println("Resposta da operacao: " + respostaServicoStr);
     }
     
 }
