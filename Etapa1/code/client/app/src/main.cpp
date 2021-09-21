@@ -2,6 +2,7 @@
 #include <parser.hpp>
 #include <ClientConnectionManager.hpp>
 #include <PacketBuilder.hpp>
+#include <CommandExecutor.hpp>
 
 bool login(ClientConnectionManager cm, std::string user) {
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
@@ -15,24 +16,11 @@ bool login(ClientConnectionManager cm, std::string user) {
     return accepted;
 }
 
-void sendMessage(ClientConnectionManager cm, std::string user, std::string message) {
-    PacketData::packet_t messagePacket = PacketBuilder::message(message, user);
-
-    int b = cm.dataSend(messagePacket);
-    std::cout << "Sent " << b << " bytes" << std::endl;
-}
-
-void requestFollow(ClientConnectionManager cm, std::string followee) {
-    PacketData::packet_t followPacket = PacketBuilder::follow(followee);
-
-    int b = cm.dataSend(followPacket);
-    std::cout << "Sent " << b << " bytes" << std::endl;
-}
-
-void handle_user_commands(ClientConnectionManager cm, std::string user) {
-    // TODO: move this user-prompt logic to a separate module
+void handleUserCommands(ClientConnectionManager cm, std::string user) {
     std::string input;
     bool is_over = false;
+    bool recognized;
+    CommandExecutor ce(cm, user);
 
     do {
         std::cout << user << "> ";
@@ -41,21 +29,11 @@ void handle_user_commands(ClientConnectionManager cm, std::string user) {
         is_over = std::cin.eof();
 
         if (!is_over) {
-            // TODO: parse input into command and argument
 
-            // This is here just for debugging, for now
-            // std::cout << "@" << user << " says: " << input << std::endl;
+            recognized = ce.execute(input);
 
-            if (input.rfind("SEND ", 0) == 0) {
-                std::cout << "\nIt was a SEND message!" << std::endl;
-                sendMessage(cm, user, input.substr(5));
-            }
-            else if (input.rfind("FOLLOW ", 0) == 0) {
-                std::cout << "\nIt was a FOLLOW message!" << std::endl;
-                requestFollow(cm, input.substr(7));
-            }
-            else {
-                std::cout << "\nI did not recognize that..." << std::endl;
+            if (!recognized) {
+                std::cout << "There was an error in your command, please check it and try again" << std::endl;
             }
 
         }
@@ -71,6 +49,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Attempting to login as '" << user << "' ... " << std::endl;
 
+    // TODO: Add login logic
     ClientConnectionManager cm(results);
 
     bool logged = login(cm, user);
@@ -79,7 +58,9 @@ int main(int argc, char* argv[]) {
         // TODO: create listener thread (mocking the server for now)
 
         // Accept and process user commands
-        handle_user_commands(cm, user);
+        handleUserCommands(cm, user);
     }
+
+    // TODO: call cleanUp
 
 }
