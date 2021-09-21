@@ -9,9 +9,12 @@
 class PersistentUser : User {
  public:
     PersistentUser(std::string username, unsigned int ID, PersistenceManager& pm);
+    PersistentUser(User user, PersistenceManager& pm);
     ~PersistentUser();
 
     void addFollower(std::string follower);
+
+    PersistentUser& operator=(const PersistentUser&) = delete;
 
  private:
     PersistenceManager& _pm;

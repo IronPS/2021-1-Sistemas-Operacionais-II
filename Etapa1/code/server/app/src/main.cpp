@@ -1,9 +1,11 @@
 
+#include <thread>
 #include <parser.hpp>
 #include <ServerConnectionManager.hpp>
 #include <PersistenceManager.hpp>
-#include <signal.h>
+#include <SessionMonitor.hpp>
 #include <Stoppable.hpp>
+#include <ClientFunctions.hpp>
 
 int main(int argc, char* argv[]) {
     Stoppable stop;
@@ -11,9 +13,10 @@ int main(int argc, char* argv[]) {
     auto results = parse(argc, argv);
 
     PersistenceManager pm("db.db");
-
     ServerConnectionManager cm(results);
+    SessionMonitor sm(pm);
     
+    std::vector<std::thread> threads;
 
     int csfd = -1;
 
@@ -21,16 +24,15 @@ int main(int argc, char* argv[]) {
         csfd = cm.getConnection();
 
         if (csfd != -1) {
-            PacketData::packet_t packet;
-            strcpy(packet.payload, "Hello World 2!");
-            auto bytes = ServerConnectionManager::dataSend(csfd, packet);
-
-            std::cout << "Sent " << bytes << " bytes" << std::endl;
-
-            ServerConnectionManager::closeConnection(csfd);
-            // TODO create thread for Client treatment
+            std::thread t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm));
+            threads.push_back(std::move(t));
         }
 
+    }
+
+    for (std::thread & th : threads) {
+        if (th.joinable())
+            th.join();
     }
     
 
