@@ -13,21 +13,19 @@ SessionMonitor::~SessionMonitor() {
     }
 }
 
-SessionController& SessionMonitor::createSession(std::string username, bool& success) {
+SessionController* SessionMonitor::createSession(std::string username, bool& success) {
     _mapSem.wait();
 
-    success = true;
-    if (_sessions.count(username)) {
-        success = _sessions[username]->newSession();
-    } else {
+    success = false;
+    if (!_sessions.count(username)) {
         SessionController* sess = new SessionController(username, _pm);
         _sessions[username] = sess;
     }
+    success = _sessions[username]->newSession();
 
     _mapSem.notify();
 
-    return *_sessions[username];
-
+    return _sessions[username];
 }
 
 void SessionMonitor::closeSession(std::string username, int csfd) {
@@ -37,6 +35,7 @@ void SessionMonitor::closeSession(std::string username, int csfd) {
 
     if (_sessions[username]->getNumSessions() == 0) {
         delete _sessions[username];
+        _sessions[username] = nullptr;
         _sessions.erase(username);
     }
 

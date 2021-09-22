@@ -11,8 +11,10 @@ class SessionMonitor {
     SessionMonitor(PersistenceManager& pm);
     ~SessionMonitor();
 
-    SessionController& createSession(std::string username, bool& success);
+    SessionController* createSession(std::string username, bool& success);
     void closeSession(std::string username, int csfd);
+
+    bool newData() { return false; } // TODO 
 
  private:
     PersistenceManager& _pm;

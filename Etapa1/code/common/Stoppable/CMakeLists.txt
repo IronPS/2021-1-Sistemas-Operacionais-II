@@ -13,3 +13,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC include
 	PRIVATE "${PROJECT_BINARY_DIR}/include"
 )
+
+# target_link_libraries(${PROJECT_NAME}
+# )

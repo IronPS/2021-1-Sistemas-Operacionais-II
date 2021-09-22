@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     }
 
-    for (std::thread & th : threads) {
+    for (std::thread& th : threads) {
         if (th.joinable())
             th.join();
     }

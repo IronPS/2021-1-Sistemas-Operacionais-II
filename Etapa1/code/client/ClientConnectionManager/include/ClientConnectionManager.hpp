@@ -20,15 +20,15 @@ class ClientConnectionManager {
     ClientConnectionManager(const cxxopts::ParseResult& input);
     ~ClientConnectionManager();
 
-    ssize_t dataSend(PacketData::packet_t packet);
-    ssize_t dataReceive(PacketData::packet_t& packet);
+    static ssize_t dataSend(PacketData::packet_t packet);
+    static ssize_t dataReceive(PacketData::packet_t& packet);
 
  private:
     std::string _user;
     std::string _server;
     std::string _port;
 
-    int _socketDesc = -1;
+    static int _socketDesc;
 
     void _openConnection();
 };

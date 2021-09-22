@@ -10,22 +10,31 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm) {
     
     bool connected = false;
     if (packet.type == PacketData::LOGIN) {
-        SessionController& session = sm.createSession(packet.extra, connected);
+        SessionController* session = sm.createSession(packet.extra, connected);
 
         if (connected) {
-            while(signaling::_continue) {
-                strcpy(packet.payload, "Hello World 2!");
-                auto bytes = ServerConnectionManager::dataSend(csfd, packet);
+            strcpy(packet.payload, "Hello World 2!");
+            ServerConnectionManager::dataSend(csfd, packet);
 
-                std::cout << "Sent " << bytes << " bytes" << std::endl;
+            while(signaling::_continue) {
+                if (sm.newData()) {
+                    // TODO get new packet
+                    ServerConnectionManager::dataSend(csfd, packet);
+                } else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+                }
             }
+
         } else {
             auto bytes = ServerConnectionManager::dataSend(csfd, PacketBuilder::error("Error: Failed to connect"));
 
-            std::cout << "Sent " << bytes << " bytes" << std::endl;
+            std::cout << "User " << packet.extra << " could not connect." << std::endl
+            << "\tSent " << bytes << " bytes" << std::endl;
         }
 
         sm.closeSession(username, csfd);
+        std::cout << "Closed session\n" << std::endl;
 
     } else {
         // TODO invalid command received error

@@ -1,11 +1,14 @@
 
 #include <Stoppable.hpp>
 
-bool signaling::_continue = true;
-static void _kill(int) { signaling::_continue = false; }
+volatile sig_atomic_t signaling::_continue = true;
+static void _kill(int) {
+    signaling::_continue = 0; 
+}
 static void _handler(int) { std::cout << "Heartbeat" << std::endl; }
 
 static struct sigaction sact;
+
 
 Stoppable::Stoppable() {
     signal(SIGINT, &_kill);

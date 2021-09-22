@@ -5,6 +5,7 @@
 #include <PersistentUser.hpp>
 #include <Semaphore.hpp>
 #include <ServerConnectionManager.hpp>
+#include <PacketBuilder.hpp>
 
 class SessionController {
  public:
@@ -22,6 +23,8 @@ class SessionController {
     std::string _username;
     PersistentUser _pUser;
     int _numSessions = 0;
+
+    bool _success = false;
 
     Semaphore _sem;
 
