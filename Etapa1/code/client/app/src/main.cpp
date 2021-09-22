@@ -7,8 +7,7 @@
 bool login(ClientConnectionManager cm, std::string user) {
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
 
-    int b = cm.dataSend(loginPacket);
-    std::cout << "Sent " << b << " bytes" << std::endl;
+    cm.dataSend(loginPacket);
 
     // TODO: logic to wait confirmation from server
     bool accepted = true;
@@ -16,17 +15,18 @@ bool login(ClientConnectionManager cm, std::string user) {
     return accepted;
 }
 
-void handleUserCommands(ClientConnectionManager cm, std::string user) {
+void handleUserInput(ClientConnectionManager cm, std::string user) {
     std::string input;
     bool is_over = false;
     bool recognized;
     CommandExecutor ce(cm, user);
 
     do {
+        // Display prompt to get user input
         std::cout << user << "> ";
 
         getline(std::cin, input);
-        is_over = std::cin.eof();
+        is_over = std::cin.eof();  // Capture Ctrl+D
 
         if (!is_over) {
 
@@ -49,16 +49,19 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Attempting to login as '" << user << "' ... " << std::endl;
 
-    // TODO: Add login logic
     ClientConnectionManager cm(results);
 
+    // TODO: Move login to a better place, perhaps inside cm constructor?
     bool logged = login(cm, user);
 
     if (logged) {
         // TODO: create listener thread (mocking the server for now)
 
-        // Accept and process user commands
-        handleUserCommands(cm, user);
+        // Inform user all is ok and they can start using system
+        std::cout << "\nSuccess! Now logged in as " << user << std::endl;
+
+        // Accept and process user input
+        handleUserInput(cm, user);
     }
 
     // TODO: call cleanUp

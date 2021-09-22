@@ -17,18 +17,39 @@ void CommandExecutor::_requestFollow(ClientConnectionManager cm, std::string fol
     cm.dataSend(followPacket);
 }
 
-bool CommandExecutor::execute(std::string command) {
+std::string CommandExecutor::_parseCommand(std::string rawInput) {
+    std::size_t spacePos = rawInput.find(" ");
+    return rawInput.substr(0, spacePos);
+}
 
-    bool recognized = true;
+std::string CommandExecutor::_parseArgument(std::string rawInput) {
+    std::size_t spacePos = rawInput.find(" ");
+    return rawInput.substr(spacePos+1);
+}
 
-    if (command.rfind("SEND ", 0) == 0) {
-        _sendMessage(_cm, _user, command.substr(5));
+
+bool CommandExecutor::execute(std::string fullCommand) {
+
+    if (fullCommand.find(" ") == std::string::npos) {   // does not contain "COMMAND <argument>" structure
+        return false;
     }
-    else if (command.rfind("FOLLOW ", 0) == 0) {
-        _requestFollow(_cm, command.substr(7));
+
+    std::string command = _parseCommand(fullCommand);
+    std::string argument = _parseArgument(fullCommand);
+
+    if (command.size() == 0 || argument.size() == 0) {  // does not contain "COMMAND <argument>" structure
+        return false;
     }
-    else {
-        recognized = false;
+
+    bool recognized = false;
+
+    if (command == "SEND") {    // should we make commands case-insensitive?
+        _sendMessage(_cm, _user, fullCommand.substr(5));
+        recognized = true;
+    }
+    else if (command == "FOLLOW") {
+        _requestFollow(_cm, fullCommand.substr(7));
+        recognized = true;
     }
 
     return recognized;
