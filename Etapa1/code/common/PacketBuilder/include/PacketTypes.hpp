@@ -16,7 +16,8 @@ namespace PacketData {
         FOLLOW,
         CLOSE,
         SUCCESS,
-        ERROR
+        ERROR,
+        NOTHING
     } packet_type;
 
     typedef struct __attribute__((packed))s_packet {

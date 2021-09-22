@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_compile_options(-Wall -Wextra -O2)
 
+find_package(Threads REQUIRED)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest

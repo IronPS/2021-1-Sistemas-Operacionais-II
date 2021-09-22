@@ -17,6 +17,8 @@ target_include_directories( ${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE ClientApp-ConnectionManager
+    PRIVATE ClientApp-CommandExecutor
+    PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJ_INSTALL_DIR})

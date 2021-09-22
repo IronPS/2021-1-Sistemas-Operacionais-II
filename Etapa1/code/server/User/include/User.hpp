@@ -10,6 +10,7 @@ class PersistenceManager;
 class User {
  public:
     User(std::string username, unsigned int ID);
+    User(const User&);
     ~User();
 
     std::string name() { return _name; }

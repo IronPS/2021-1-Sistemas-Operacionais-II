@@ -9,7 +9,7 @@
 #include <sys/prctl.h>
 
 namespace signaling {
-    extern bool _continue;
+    extern volatile sig_atomic_t _continue;
 };
 
 class Stoppable {

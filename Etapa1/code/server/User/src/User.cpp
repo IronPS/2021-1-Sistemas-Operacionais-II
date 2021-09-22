@@ -6,6 +6,12 @@ User::User(std::string username, unsigned int ID) {
     _ID = ID;
 }
 
+User::User(const User& user) {
+    _name = user._name;
+    _ID = user._ID;
+    _followers = user._followers;
+}
+
 User::~User() {
 
 }
