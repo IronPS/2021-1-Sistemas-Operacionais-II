@@ -78,7 +78,7 @@ void ClientConnectionManager::_openConnection() {
 
     // Set timeout
     struct timeval tv;
-    tv.tv_sec = 5; // 5 seconds
+    tv.tv_sec = 1; // 5 seconds
     tv.tv_usec = 0;
     setsockopt(_socketDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
@@ -106,7 +106,7 @@ ssize_t ClientConnectionManager::dataSend(PacketData::packet_t packet) {
 
     // And delete this, from here:
     print_packet(packet);
-    std::cout << "Byted sent: " << bytes_sent << std::endl;
+    std::cout << "Bytes sent: " << bytes_sent << std::endl;
     // ssize_t bytes_sent = 99;
     // : to here
 
