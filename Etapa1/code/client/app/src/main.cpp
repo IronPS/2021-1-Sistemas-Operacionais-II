@@ -80,7 +80,7 @@ void handleServerInput(std::string user) {
     while (!is_over && signaling::_continue) {
         packet.type = PacketData::packet_type::NOTHING;
         auto bytes_received = ClientConnectionManager::dataReceive(packet);
-        std::cout << bytes_received << "\n";
+
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
         if (signaling::_continue) {
