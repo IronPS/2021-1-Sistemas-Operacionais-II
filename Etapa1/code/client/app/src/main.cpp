@@ -1,8 +1,16 @@
+
+#include <thread>
+#include <future>
+#include <chrono>
+
 #include <parser.hpp>
+#include <Stoppable.hpp>
 #include <ClientConnectionManager.hpp>
 #include <PacketBuilder.hpp>
 #include <PacketTypes.hpp>
 #include <CommandExecutor.hpp>
+
+static bool is_over = false;
 
 bool login(std::string user) {
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
@@ -22,43 +30,74 @@ bool login(std::string user) {
     return accepted;
 }
 
-void handleUserInput(std::string user) {
+std::string readInput() {
     std::string input;
-    bool is_over = false;
+    std::getline(std::cin, input);
+    return input;    
+}
+
+void handleUserInput(std::string user) {
     bool recognized;
     CommandExecutor ce(user);
-    PacketData::packet_t packet;
+    std::chrono::seconds timeout(3);
+    std::future<std::string> future = std::async(readInput); 
 
+    std::string command;
+    std::cout << user << "> ";
     do {
-        // Display prompt to get user input
-        std::cout << user << "> ";
+        if (std::cin) {
+            std::cin.clear();
+            if (future.wait_for(timeout) == std::future_status::ready) {
+                command = future.get();
 
-        getline(std::cin, input);
-        is_over = std::cin.eof();  // Capture Ctrl+D
+                recognized = ce.execute(command);
 
-        if (!is_over) {
-
-            recognized = ce.execute(input);
-
-            if (!recognized) {
-                std::cout << "There was an error in your command, please check it and try again" << std::endl;
+                if (!recognized && std::cin) {
+                    std::cout << "Command not recognized\n";
+                }
+            
+                std::cout << user << "> ";
+                future = std::async(readInput);
+            
             }
 
-            // TODO remove this from here and add at packet reception treatment thread
-            packet.type = PacketData::packet_type::NOTHING;
-            ClientConnectionManager::dataReceive(packet);
+        } else {
+            ce.execute("close");
+            is_over = true;
+        }
 
+    } while(!is_over && signaling::_continue);
+
+    if (!signaling::_continue) {
+        ce.execute("close");
+    }
+
+    exit(0); // Quick and dirty way
+}
+
+void handleServerInput(std::string user) {
+    PacketData::packet_t packet;
+    while (!is_over && signaling::_continue) {
+        packet.type = PacketData::packet_type::NOTHING;
+        auto bytes_received = ClientConnectionManager::dataReceive(packet);
+        std::cout << bytes_received << "\n";
+        if (packet.type == PacketData::packet_type::NOTHING) continue;
+
+        if (signaling::_continue) {
             if (packet.type == PacketData::packet_type::CLOSE) {
                 std::cout << "Closed by the server" << std::endl;
                 is_over = true;
+            } else { // TODO
+                std::cout << packet.payload << std::endl;
             }
         }
-
-    } while(!is_over);
-
+        std::cout << user << "> ";
+    }
 }
 
 int main(int argc, char* argv[]) {
+    Stoppable stop;
+    
     auto results = parse(argc, argv);
 
     std::string user = results["user"].as<std::string>();
@@ -70,18 +109,24 @@ int main(int argc, char* argv[]) {
     // TODO: Move login to a better place, perhaps inside cm constructor?
     bool logged = login(user);
 
+    std::vector<std::thread> threads;
+
     if (logged) {
-        // TODO: create listener thread (mocking the server for now)
+        std::thread t = std::thread(handleUserInput, user);
+        threads.push_back(std::move(t));
 
-        // Inform user all is ok and they can start using system
-        std::cout << "\nSuccess! Now logged in as " << user << std::endl;
+        t = std::thread(handleServerInput, user);
+        threads.push_back(std::move(t));
 
-        // Accept and process user input
-        handleUserInput(user);
     } else {
         std::cout << "Failed to login" << std::endl;
     }
 
-    // TODO: call cleanUp
+    for (std::thread& th : threads) {
+        if (th.joinable())
+            th.join();
+    }
+
+    exit(0);
 
 }

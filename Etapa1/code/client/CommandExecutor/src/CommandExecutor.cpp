@@ -17,8 +17,17 @@ void CommandExecutor::_requestFollow(std::string followee) {
     ClientConnectionManager::dataSend(followPacket);
 }
 
+void CommandExecutor::_sendClose() {
+    PacketData::packet_t closePacket = PacketBuilder::close();
+
+    ClientConnectionManager::dataSend(closePacket);
+
+    signaling::_continue = false;
+
+}
+
 std::string CommandExecutor::_parseCommand(std::string rawInput) {
-    std::size_t spacePos = rawInput.find(" ");
+    std::size_t spacePos = rawInput.find(' ');
     return rawInput.substr(0, spacePos);
 }
 
@@ -30,26 +39,46 @@ std::string CommandExecutor::_parseArgument(std::string rawInput) {
 
 bool CommandExecutor::execute(std::string fullCommand) {
 
-    if (fullCommand.find(" ") == std::string::npos) {   // does not contain "COMMAND <argument>" structure
-        return false;
+    bool foundSpace = true;
+    if (fullCommand.find(' ') == std::string::npos) {   // does not contain "COMMAND <argument>" structure
+        foundSpace = false;
     }
 
     std::string command = _parseCommand(fullCommand);
-    std::string argument = _parseArgument(fullCommand);
+    std::transform(command.begin(), command.end(), command.begin(),
+        [](unsigned char c){ return std::tolower(c); });
 
-    if (command.size() == 0 || argument.size() == 0) {  // does not contain "COMMAND <argument>" structure
-        return false;
+    std::string argument;
+    
+    if (foundSpace) {
+        argument = _parseArgument(fullCommand);
     }
+
+    if (command.size() == 0) return false;
+    if (foundSpace && argument.size() == 0) return false; // does not contain "COMMAND <argument>" structure
 
     bool recognized = false;
 
-    if (command == "SEND") {    // should we make commands case-insensitive?
+    if (command == "send") {    // should we make commands case-insensitive?
+        if (!foundSpace) return false;
+
         _sendMessage(_user, fullCommand.substr(5));
         recognized = true;
-    }
-    else if (command == "FOLLOW") {
+
+    } else if (command == "follow") {
+        if (!foundSpace) return false;
+
         _requestFollow(fullCommand.substr(7));
         recognized = true;
+
+    } else if (command == "close") {
+        _sendClose();
+        recognized = true;
+
+    } else {
+        std::cout << "Command '" << command << "' could not be recognized. Available commands:"
+                << "SEND, FOLLOW, CLOSE"
+                << std::endl;
     }
 
     return recognized;

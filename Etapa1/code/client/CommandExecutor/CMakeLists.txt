@@ -15,6 +15,7 @@ target_include_directories( ${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} 
-    PRIVATE ClientApp-ConnectionManager
+    PUBLIC Common-Stoppable
+    PUBLIC ClientApp-ConnectionManager
     PUBLIC Common-PacketBuilder
 )
