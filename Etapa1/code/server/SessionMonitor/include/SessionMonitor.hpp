@@ -14,7 +14,13 @@ class SessionMonitor {
     SessionController* createSession(std::string username, bool& success);
     void closeSession(std::string username, int csfd);
 
+    void getControl();
+    void freeControl();
+
+    SessionController* getSession(std::string username);
+
     bool newData() { return false; } // TODO 
+
 
  private:
     PersistenceManager& _pm;

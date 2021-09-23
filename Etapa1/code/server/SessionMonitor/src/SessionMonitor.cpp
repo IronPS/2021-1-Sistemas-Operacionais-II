@@ -41,3 +41,16 @@ void SessionMonitor::closeSession(std::string username, int csfd) {
 
     _mapSem.notify();
 }
+
+void SessionMonitor::getControl() {
+    _mapSem.wait();
+}
+
+void SessionMonitor::freeControl() {
+    _mapSem.notify();
+}
+
+SessionController* SessionMonitor::getSession(std::string username) {
+    if (!_sessions.count(username)) return _sessions[username];
+    else return nullptr;
+}

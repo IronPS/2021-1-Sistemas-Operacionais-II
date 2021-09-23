@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
         csfd = cm.getConnection();
 
         if (csfd != -1) {
-            std::thread t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm));
+            std::thread t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm));
             threads.push_back(std::move(t));
         }
 

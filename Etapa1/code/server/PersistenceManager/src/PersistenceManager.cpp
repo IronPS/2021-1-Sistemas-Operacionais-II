@@ -29,7 +29,7 @@ PersistenceManager::~PersistenceManager() {
 
 }
 
-User PersistenceManager::loadUser(std::string username) {
+User PersistenceManager::loadUser(std::string username, bool create) {
     _sem.wait();
 
     std::string search = username + ",";
@@ -68,8 +68,10 @@ User PersistenceManager::loadUser(std::string username) {
     User user(uname, ID);
     _setFollowers(user, followers);
 
-    if (mustCreate) {
+    if (mustCreate && create) {
         _privateSaveUser(user);
+    } else if (mustCreate && !create) {
+        user = User("", 0);
     }
 
     _dbFile.clear(); // Clear errors (?)

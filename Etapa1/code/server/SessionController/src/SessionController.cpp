@@ -42,6 +42,13 @@ void SessionController::closeSession(int csfd) {
     _sem.notify();
 }
 
+void SessionController::addFollower(std::string follower) {
+    _sem.wait();
+    _pUser.addFollower(follower);
+    _sem.notify();
+}
+
+
 size_t SessionController::getNumSessions() {
     return _numSessions;
 }

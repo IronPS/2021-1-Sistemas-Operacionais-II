@@ -13,7 +13,7 @@ class PersistenceManager {
     PersistenceManager(std::string databasePath);
     ~PersistenceManager();
 
-    User loadUser(std::string username);
+    User loadUser(std::string username, bool create = true);
     void saveUser(User& user);
 
  private:

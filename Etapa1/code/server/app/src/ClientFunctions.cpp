@@ -1,7 +1,7 @@
 
 #include <ClientFunctions.hpp>
 
-void ClientFunctions::newConnection(int csfd, SessionMonitor& sm) {
+void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm) {
     PacketData::packet_t packet;
 
     // Set timeout
@@ -40,11 +40,39 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm) {
                         << username << "' to user '"
                         << packet.extra 
                         << "'" << std::endl;
+
+                        bool success = true;
+                        if (username != packet.extra) {
+                            sm.getControl();
+                            
+                            SessionController* followee = sm.getSession(packet.extra);
+                            if (followee != nullptr) {
+                                followee->addFollower(username);
+                            } else { // No session already open
+                                User user = pm.loadUser(packet.extra, false);
+
+                                if (user.name() == packet.extra) {
+                                    user.addFollower(username);
+                                    pm.saveUser(user);
+                                } else {
+                                    success = false;
+                                }
+                            }
+                            
+                            sm.freeControl();
+
+                            if (!success) {
+                                ServerConnectionManager::dataSend(csfd, PacketBuilder::error("Follow failed: username does not exist"));
+                            }
+                        }
+
+
                     } else if (packet.type == PacketData::packet_type::MESSAGE) { // TODO
                         std::cout << "Received MESSAGE from user '"
                         << username << "' with content '"
                         << packet.payload 
                         << "'" << std::endl;
+
                     }
                 }
 

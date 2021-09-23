@@ -16,6 +16,8 @@ class SessionController {
     void closeSession(int csfd);
     size_t getNumSessions();
 
+    // void follow(std::string followee);
+    void addFollower(std::string follower);
 
     SessionController operator=(const SessionController&) = delete;
 
