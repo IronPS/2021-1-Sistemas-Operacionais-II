@@ -1,7 +1,7 @@
 
 #include <ClientFunctions.hpp>
 
-void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm) {
+void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm, MessageManager& mm) {
     PacketData::packet_t packet;
 
     // Set timeout
@@ -68,10 +68,14 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
 
                     } else if (packet.type == PacketData::packet_type::MESSAGE) { // TODO
+                        std::string messageContent = packet.payload;
+
                         std::cout << "Received MESSAGE from user '"
                         << username << "' with content '"
-                        << packet.payload 
+                        << messageContent
                         << "'" << std::endl;
+
+                        mm.processIncomingMessage(username, messageContent, packet.timestamp);
 
                     }
                 }
