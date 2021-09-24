@@ -13,15 +13,15 @@ SessionMonitor::~SessionMonitor() {
     }
 }
 
-SessionController* SessionMonitor::createSession(std::string username, bool& success) {
+SessionController* SessionMonitor::createSession(std::string username, int csfd, bool& success) {
     _mapSem.wait();
 
     success = false;
     if (!_sessions.count(username)) {
-        SessionController* sess = new SessionController(username, _pm);
+        SessionController* sess = new SessionController(username, _pm, _mm);
         _sessions[username] = sess;
     }
-    success = _sessions[username]->newSession();
+    success = _sessions[username]->newSession(csfd);
 
     _mapSem.notify();
 

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 add_subdirectory(ServerConnectionManager)
 add_subdirectory(PersistenceManager)
+add_subdirectory(ProducerConsumerBuffer)
 add_subdirectory(MessageManager)
 add_subdirectory(SessionController)
 add_subdirectory(SessionMonitor)

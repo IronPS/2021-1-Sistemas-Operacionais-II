@@ -17,5 +17,6 @@ target_include_directories( ${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC ServerApp-SessionController
     PUBLIC ServerApp-PersistenceManager
+    PUBLIC ServerApp-MessageManager
     PUBLIC Common-Semaphore
 )

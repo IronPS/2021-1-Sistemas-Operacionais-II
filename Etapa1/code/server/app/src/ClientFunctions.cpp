@@ -1,7 +1,7 @@
 
 #include <ClientFunctions.hpp>
 
-void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm, MessageManager& mm) {
+void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm) {
     PacketData::packet_t packet;
 
     // Set timeout
@@ -16,7 +16,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
     
     bool connected = false;
     if (packet.type == PacketData::LOGIN) {
-        SessionController* session = sm.createSession(packet.extra, connected);
+        SessionController* session = sm.createSession(packet.extra, csfd, connected);
 
         if (connected) {
             strcpy(packet.payload, (std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username).c_str());
@@ -26,10 +26,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
             bool is_over = false;
             while(signaling::_continue && !is_over) {
-                if (sm.newData()) {
-                    // TODO get new packet
-                    ServerConnectionManager::dataSend(csfd, packet);
-                } 
+                session->deliverMessages();
                 
                 auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
                 if (bytes_received > 0) {
@@ -75,7 +72,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                         << messageContent
                         << "'" << std::endl;
 
-                        mm.processIncomingMessage(username, messageContent, packet.timestamp);
+                        session->sendMessage(messageContent);
 
                     }
                 }

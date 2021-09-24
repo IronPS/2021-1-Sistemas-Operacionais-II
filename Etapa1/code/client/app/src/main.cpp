@@ -79,7 +79,7 @@ void handleServerInput(std::string user) {
     PacketData::packet_t packet;
     while (!is_over && signaling::_continue) {
         packet.type = PacketData::packet_type::NOTHING;
-        auto bytes_received = ClientConnectionManager::dataReceive(packet);
+        ClientConnectionManager::dataReceive(packet);
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
@@ -87,7 +87,9 @@ void handleServerInput(std::string user) {
             if (packet.type == PacketData::packet_type::CLOSE) {
                 std::cout << "Closed by the server" << std::endl;
                 is_over = true;
-            } else { // TODO
+            } else if (packet.type == PacketData::packet_type::MESSAGE) {
+                std::cout << "@" << packet.extra << ": " << packet.payload << std::endl;
+            } else {
                 std::cout << packet.payload << std::endl;
             }
         }

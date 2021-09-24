@@ -6,7 +6,7 @@
 #include <User.hpp>
 #include <PersistenceManager.hpp>
 
-class PersistentUser : User {
+class PersistentUser : public User {
  public:
     PersistentUser(std::string username, unsigned int ID, PersistenceManager& pm);
     PersistentUser(User user, PersistenceManager& pm);

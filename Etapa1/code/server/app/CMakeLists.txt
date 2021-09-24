@@ -20,7 +20,6 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE ServerApp-ConnectionManager
     PRIVATE ServerApp-PersistenceManager
     PRIVATE ServerApp-SessionMonitor
-    PRIVATE ServerApp-MessageManager
     PRIVATE Common-Stoppable
     PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )

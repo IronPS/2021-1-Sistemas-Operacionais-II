@@ -10,8 +10,7 @@
 #include <Stoppable.hpp>
 #include <PacketBuilder.hpp>
 #include <PersistenceManager.hpp>
-#include <MessageManager.hpp>
 
 namespace ClientFunctions {
-    void newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm, MessageManager& mm);
+    void newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm);
 }
