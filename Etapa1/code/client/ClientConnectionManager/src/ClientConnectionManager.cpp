@@ -85,7 +85,7 @@ void ClientConnectionManager::_openConnection() {
 }
 
 // PURELY FOR DEBUG, delete this once client<->server communication is working
-void print_packet(PacketData::packet_t packet) {
+void ClientConnectionManager::_print_packet(PacketData::packet_t packet) {
     std::cout   << "Packet:\n"
                 << "Payload: " << packet.payload << "\n"
                 << "Extra: " << packet.extra << "\n"
@@ -101,12 +101,12 @@ ssize_t ClientConnectionManager::dataSend(PacketData::packet_t packet) {
     //std::cout << "Sending to socket " << _socketDesc << "..." << "\n" << packet.payload << std::endl;
 
     // Restore this,
-    std::cout << "Sending packet\n";
+    // std::cout << "Sending packet\n";
     auto bytes_sent = send(_socketDesc, (void*) &packet, sizeof(PacketData::packet_t), 0);
 
     // And delete this, from here:
-    print_packet(packet);
-    std::cout << "Bytes sent: " << bytes_sent << std::endl;
+    // print_packet(packet);
+    // std::cout << "Bytes sent: " << bytes_sent << std::endl;
     // ssize_t bytes_sent = 99;
     // : to here
 

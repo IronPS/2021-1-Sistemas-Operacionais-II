@@ -45,7 +45,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                             SessionController* followee = sm.getSession(packet.extra);
                             if (followee != nullptr) {
                                 followee->addFollower(username);
-                            } else { // No session already open
+                            } else { // No session open
                                 User user = pm.loadUser(packet.extra, false);
 
                                 if (user.name() == packet.extra) {

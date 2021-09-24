@@ -51,6 +51,6 @@ void SessionMonitor::freeControl() {
 }
 
 SessionController* SessionMonitor::getSession(std::string username) {
-    if (!_sessions.count(username)) return _sessions[username];
+    if (_sessions.count(username)) return _sessions[username];
     else return nullptr;
 }
