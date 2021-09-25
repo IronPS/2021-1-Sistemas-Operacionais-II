@@ -16,7 +16,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
     
     bool connected = false;
     if (packet.type == PacketData::LOGIN) {
-        SessionController* session = sm.createSession(packet.extra, connected);
+        SessionController* session = sm.createSession(packet.extra, csfd, connected);
 
         if (connected) {
             strcpy(packet.payload, (std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username).c_str());
@@ -26,10 +26,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
             bool is_over = false;
             while(signaling::_continue && !is_over) {
-                if (sm.newData()) {
-                    // TODO get new packet
-                    ServerConnectionManager::dataSend(csfd, packet);
-                } 
+                session->deliverMessages();
                 
                 auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
                 if (bytes_received > 0) {
@@ -48,7 +45,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                             SessionController* followee = sm.getSession(packet.extra);
                             if (followee != nullptr) {
                                 followee->addFollower(username);
-                            } else { // No session already open
+                            } else { // No session open
                                 User user = pm.loadUser(packet.extra, false);
 
                                 if (user.name() == packet.extra) {
@@ -68,10 +65,14 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
 
                     } else if (packet.type == PacketData::packet_type::MESSAGE) { // TODO
+                        std::string messageContent = packet.payload;
+
                         std::cout << "Received MESSAGE from user '"
                         << username << "' with content '"
-                        << packet.payload 
+                        << messageContent
                         << "'" << std::endl;
+
+                        session->sendMessage(messageContent);
 
                     }
                 }

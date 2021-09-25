@@ -87,7 +87,6 @@ void PersistenceManager::saveUser(User& user) {
 
     _privateSaveUser(user);
 
-
     _sem.notify();
 }
 

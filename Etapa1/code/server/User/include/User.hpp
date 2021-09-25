@@ -19,6 +19,7 @@ class User {
 
     void addFollower(std::string follower);
     
+    User& operator=(const User&);
     /*
      * Serializes User to string format compatible with the persistence
      */

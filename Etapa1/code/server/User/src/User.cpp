@@ -20,6 +20,15 @@ void User::addFollower(std::string follower) {
     _followers.insert(follower);
 }
 
+User& User::operator=(const User& user) {
+    this->_name = user._name;
+    this->_ID = user._ID;
+    this->_followers = user._followers;
+
+    return *this;
+}
+
+
 std::ostream& operator<<(std::ostream& os, const User& user) {
     os << user._name << ",";
     for (auto follower : user._followers) {

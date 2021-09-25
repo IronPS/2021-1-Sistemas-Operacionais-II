@@ -5,13 +5,14 @@
 #include <PersistenceManager.hpp>
 #include <SessionController.hpp>
 #include <Semaphore.hpp>
+#include <MessageManager.hpp>
 
 class SessionMonitor {
  public:
     SessionMonitor(PersistenceManager& pm);
     ~SessionMonitor();
 
-    SessionController* createSession(std::string username, bool& success);
+    SessionController* createSession(std::string username, int csfd, bool& success);
     void closeSession(std::string username, int csfd);
 
     void getControl();
@@ -19,11 +20,10 @@ class SessionMonitor {
 
     SessionController* getSession(std::string username);
 
-    bool newData() { return false; } // TODO 
-
 
  private:
     PersistenceManager& _pm;
+    MessageManager _mm;
     std::map<std::string, SessionController*> _sessions;
 
     Semaphore _mapSem;

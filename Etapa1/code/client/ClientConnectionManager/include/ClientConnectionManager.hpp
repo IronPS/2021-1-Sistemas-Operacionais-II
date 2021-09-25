@@ -31,4 +31,5 @@ class ClientConnectionManager {
     static int _socketDesc;
 
     void _openConnection();
+    void _print_packet(PacketData::packet_t packet);
 };

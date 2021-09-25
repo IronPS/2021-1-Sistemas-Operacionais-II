@@ -1,8 +1,8 @@
 
 #include <SessionController.hpp>
 
-SessionController::SessionController(std::string username, PersistenceManager& pm)
-: _pUser(pm.loadUser(username), pm), _sem(1)
+SessionController::SessionController(std::string username, PersistenceManager& pm, MessageManager& mm)
+: _pUser(pm.loadUser(username), pm), _mm(mm), _sem(1)
 {
     _username = username;
 
@@ -12,7 +12,7 @@ SessionController::~SessionController() {
 
 }
 
-bool SessionController::newSession() {
+bool SessionController::newSession(int csfd) {
     bool success = false;
     _sem.wait();
 
@@ -22,6 +22,8 @@ bool SessionController::newSession() {
         success = false;
     }
     _numSessions += 1; // Because it will be deleted immediately if failed
+
+    _sessionSFD.insert(csfd);
 
     _sem.notify();
 
@@ -36,8 +38,9 @@ void SessionController::closeSession(int csfd) {
 
     auto bytes_sent = ServerConnectionManager::dataSend(csfd, PacketBuilder::close());
 
-    std::cout << "sent " << bytes_sent << std::endl;
     ServerConnectionManager::closeConnection(csfd);
+
+    _sessionSFD.erase(csfd);
 
     _sem.notify();
 }
@@ -51,4 +54,24 @@ void SessionController::addFollower(std::string follower) {
 
 size_t SessionController::getNumSessions() {
     return _numSessions;
+}
+
+void SessionController::sendMessage(std::string message) {
+    _mm.processIncomingMessage(_pUser, message, static_cast<uint64_t>(time(0)));
+}
+
+void SessionController::deliverMessages() {
+    _sem.wait();
+    PacketData::packet_t packet = _mm.getPacket(_pUser.name());
+
+    while (packet.type != PacketData::packet_type::NOTHING) {      
+        for (auto sfd : _sessionSFD) {
+            ServerConnectionManager::dataSend(sfd, packet);
+        }
+
+        packet = _mm.getPacket(_pUser.name());
+    }
+
+    _sem.notify();
+
 }
