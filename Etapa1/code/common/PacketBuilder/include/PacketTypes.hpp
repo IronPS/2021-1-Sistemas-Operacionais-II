@@ -21,9 +21,9 @@ namespace PacketData {
     } packet_type;
 
     typedef struct __attribute__((packed))s_packet {
-        uint16_t type;
-        uint16_t seqn;
-        uint16_t length;
+        packet_type type;
+        uint16_t seqn; // Not used
+        uint16_t length; // Not used
         uint64_t timestamp;
         char payload[PT_PAYLOAD_SIZE];
         char extra[PT_EXTRA_SIZE];

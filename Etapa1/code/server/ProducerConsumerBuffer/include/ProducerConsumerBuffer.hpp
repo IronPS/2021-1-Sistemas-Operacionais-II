@@ -14,7 +14,7 @@ typedef struct s_message {
     uint64_t timestamp;
     PacketData::packet_t packet;
     bool delivered;
-} message_t;  // Structure mostly as suggested by professor, with 'creator' added
+} message_t; 
 
 class ProducerConsumerBuffer {
  public:

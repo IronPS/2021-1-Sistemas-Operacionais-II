@@ -32,7 +32,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                 if (bytes_received > 0) {
                     if (packet.type == PacketData::packet_type::CLOSE) {
                         is_over = true;
-                    } else if (packet.type == PacketData::packet_type::FOLLOW) { // TODO
+                    } else if (packet.type == PacketData::packet_type::FOLLOW) {
                         std::cout << "Received FOLLOW from user '" 
                         << username << "' to user '"
                         << packet.extra 
@@ -64,7 +64,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                         }
 
 
-                    } else if (packet.type == PacketData::packet_type::MESSAGE) { // TODO
+                    } else if (packet.type == PacketData::packet_type::MESSAGE) {
                         std::string messageContent = packet.payload;
 
                         std::cout << "Received MESSAGE from user '"

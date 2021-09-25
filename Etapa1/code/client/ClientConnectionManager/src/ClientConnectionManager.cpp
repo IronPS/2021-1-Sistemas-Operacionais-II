@@ -78,7 +78,7 @@ void ClientConnectionManager::_openConnection() {
 
     // Set timeout
     struct timeval tv;
-    tv.tv_sec = 1; // 5 seconds
+    tv.tv_sec = 1; // 1 seconds
     tv.tv_usec = 0;
     setsockopt(_socketDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
