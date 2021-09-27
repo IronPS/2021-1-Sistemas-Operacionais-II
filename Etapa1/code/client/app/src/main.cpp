@@ -84,37 +84,27 @@ void handleServerInput(std::string user) {
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
         if (signaling::_continue) {
-            std::cout << '\n';
+            std::cout << '\n';  // Get out of user prompt
 
             if (packet.type == PacketData::packet_type::CLOSE) {
-                std::cout << "\e[1;31m" << "SERVER: " << "\e[0m" << "Closed by the server" << std::endl;
+                std::cout   << "\e[1;31m"   // Color RED for Server
+                            << "SERVER: " 
+                            << "\e[0m"  // Restore normal color
+                            << "Closed by the server" 
+                            << std::endl;
                 is_over = true;
             } else if (packet.type == PacketData::packet_type::MESSAGE) {
-                // std::cout << "\x1bM" << "@" << packet.extra << ": " << packet.payload << std::endl;
-                // std::cout << "\e0" << "\n" << "@" << packet.extra << ": " << packet.payload << std::endl;
-                // std::string a = std::cin.rdbuf();
-
-                // std::cout << "\e0" << "\n" << std::flush;
-                // std::cout << "\e1" << "@" << packet.extra << ": " << packet.payload << "\n" << std::flush;
-
-                // std::cout << "\e0" << "@" << packet.extra << ": " << packet.payload << "\n" << std::flush;
-
-                // std::ostringstream bufferStream {};
-                // bufferStream << std::cin.rdbuf();
-                // std::string userBuffer {bufferStream.str()};
-                // std::cout << "This is what the user had: " << userBuffer << std::endl << std::flush;
-                // std::cin.sync();
-                // std::cout << "\e1" << "@" << packet.extra << ": " << packet.payload << "\n" << std::flush;
-
-                std::cout << "\e[1;36m" << "@" << packet.extra << ": " << "\e[0m" << packet.payload << "\n" << std::flush;
-
+                std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
+                            << "@" << packet.extra << ": "  // Creator identification
+                            << "\e[0m"  // Restore normal color
+                            << packet.payload << "\n" << std::flush;
             } else {
                 std::cout << packet.payload << std::endl;
             }
 
-            std::cout << user << "> " << std::flush;
+            std::cout << user << "> " << std::flush;    // Recreate user prompt
         }
-        // std::cout << user << "> ";
+
     }
 }
 
@@ -129,7 +119,6 @@ int main(int argc, char* argv[]) {
 
     ClientConnectionManager cm(results);
 
-    // TODO: Move login to a better place, perhaps inside cm constructor?
     bool logged = login(user);
 
     std::vector<std::thread> threads;
