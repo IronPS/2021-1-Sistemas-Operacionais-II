@@ -59,7 +59,7 @@ bool CommandExecutor::execute(std::string fullCommand) {
 
     bool recognized = false;
 
-    if (command == "send") {    // should we make commands case-insensitive?
+    if (command == "send") {    // we allow for case-insensitive commands
         if (!foundSpace) return false;
 
         _sendMessage(_user, fullCommand.substr(5));
@@ -76,7 +76,7 @@ bool CommandExecutor::execute(std::string fullCommand) {
         recognized = true;
 
     } else {
-        std::cout << "Command '" << command << "' could not be recognized. Available commands:"
+        std::cout << "Command '" << command << "' could not be recognized. Available commands: "
                 << "SEND, FOLLOW, CLOSE"
                 << std::endl;
     }

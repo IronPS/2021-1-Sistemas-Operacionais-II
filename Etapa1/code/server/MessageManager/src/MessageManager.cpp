@@ -38,7 +38,6 @@ void MessageManager::processIncomingMessage(User& creator, const std::string tex
         if (th.joinable()) th.join();
     }
 
-    // std::cout << "Now there are " << _pendingMessages[creator.name()].size() << " messages received by the server." << std::endl;
 }
 
 PacketData::packet_t MessageManager::getPacket(std::string toUser) {
