@@ -56,8 +56,10 @@ void handleUserInput(std::string user) {
                     std::cout << "Command not recognized\n";
                 }
             
-                std::cout << user << "> ";
-                future = std::async(readInput);
+                if(!is_over && signaling::_continue) { // Conditional to avoid creating a new prompt when user wants to close
+                    std::cout << user << "> ";  
+                    future = std::async(readInput);
+                }
             
             }
 
@@ -93,16 +95,18 @@ void handleServerInput(std::string user) {
                             << "Closed by the server" 
                             << std::endl;
                 is_over = true;
+                // No need to recreate user prompt here
             } else if (packet.type == PacketData::packet_type::MESSAGE) {
                 std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
                             << "@" << packet.extra << ": "  // Creator identification
                             << "\e[0m"  // Restore normal color
                             << packet.payload << "\n" << std::flush;
+                std::cout << user << "> " << std::flush;    // Recreate user prompt
             } else {
                 std::cout << packet.payload << std::endl;
+                std::cout << user << "> " << std::flush;    // Recreate user prompt
             }
 
-            std::cout << user << "> " << std::flush;    // Recreate user prompt
         }
 
     }
