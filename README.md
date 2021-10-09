@@ -1,2 +1,2 @@
 # Repositório para projeto de disciplina
-Sistemas Operacionais I
+Sistemas Operacionais II
