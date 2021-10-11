@@ -10,6 +10,7 @@
 
 namespace signaling {
     extern volatile sig_atomic_t _continue;
+    extern volatile sig_atomic_t _heartbeat;
 };
 
 class Stoppable {

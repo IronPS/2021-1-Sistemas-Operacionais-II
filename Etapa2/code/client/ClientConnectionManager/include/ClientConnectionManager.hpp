@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 class ClientConnectionManager {
  public:
@@ -18,8 +19,10 @@ class ClientConnectionManager {
      * Exits with error if it fails
     */
     ClientConnectionManager(const cxxopts::ParseResult& input);
+    ClientConnectionManager(std::string serverAddress, unsigned short serverPort);
     ~ClientConnectionManager();
 
+    bool openConnection(bool exitOnFail = false, bool nonBlocking = true);
     static ssize_t dataSend(PacketData::packet_t packet);
     static ssize_t dataReceive(PacketData::packet_t& packet);
 
@@ -30,6 +33,6 @@ class ClientConnectionManager {
 
     static int _socketDesc;
 
-    void _openConnection();
+    bool _openConnection(bool exitOnFail = true, bool nonBlocking = false);
     void _print_packet(PacketData::packet_t packet);
 };

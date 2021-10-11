@@ -12,6 +12,10 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
 
 }
 
+ClientConnectionManager::ClientConnectionManager(std::string serverAddress, unsigned short serverPort) {
+    _server = serverAddress;
+    _port = std::to_string(serverPort);
+}
 
 ClientConnectionManager::~ClientConnectionManager() {
     if (_socketDesc != -1) {
@@ -19,8 +23,12 @@ ClientConnectionManager::~ClientConnectionManager() {
     }
 }
 
-void ClientConnectionManager::_openConnection() {
-    if (_socketDesc != -1) return;
+bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking) {
+    return _openConnection(exitOnFail, nonBlocking);
+}
+
+bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking) {
+    if (_socketDesc != -1) return false;
 
     struct addrinfo hints, *addrs = NULL;
     int err = 0;
@@ -41,7 +49,8 @@ void ClientConnectionManager::_openConnection() {
         std::cerr << "Error at getaddrinfo: "
         << gai_strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     for (struct addrinfo* addrpt = addrs; addrpt != NULL; addrpt = addrpt->ai_next) {
@@ -66,14 +75,16 @@ void ClientConnectionManager::_openConnection() {
         std::cerr << "Connection error: "
         << strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     if (err != 0) {
         std::cerr << "Connection error: "
         << strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     // Set timeout
@@ -82,6 +93,9 @@ void ClientConnectionManager::_openConnection() {
     tv.tv_usec = 0;
     setsockopt(_socketDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
+    if (nonBlocking) fcntl(_socketDesc, F_SETFL, fcntl(_socketDesc, F_GETFL, 0) | O_NONBLOCK);
+    
+    return true;
 }
 
 // PURELY FOR DEBUG, delete this once client<->server communication is working

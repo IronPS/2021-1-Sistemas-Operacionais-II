@@ -2,6 +2,7 @@
 #include <thread>
 #include <parser.hpp>
 #include <ServerConnectionManager.hpp>
+#include <ReplicaManager.hpp>
 #include <PersistenceManager.hpp>
 #include <SessionMonitor.hpp>
 #include <Stoppable.hpp>
@@ -12,19 +13,21 @@ int main(int argc, char* argv[]) {
 
     auto results = parse(argc, argv);
 
-    PersistenceManager pm("db.db");
+    ReplicaManager rm(results);
+    PersistenceManager pm(std::to_string(results["port"].as<unsigned short>()) + "-db.db");
     ServerConnectionManager cm(results);
     SessionMonitor sm(pm);
     
     std::vector<std::thread> threads;
-
     int csfd = -1;
 
+    std::thread t = std::thread(&ReplicaManager::handleReplicas, rm);
+    threads.push_back(std::move(t));
     while (signaling::_continue) {
         csfd = cm.getConnection();
 
         if (csfd != -1) {
-            std::thread t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm));
+            t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm));
             threads.push_back(std::move(t));
         }
 

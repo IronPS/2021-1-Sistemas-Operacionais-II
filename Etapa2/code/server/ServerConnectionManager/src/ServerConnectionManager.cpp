@@ -96,11 +96,8 @@ int ServerConnectionManager::getConnection() {
     sockaddr_storage client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
 
-    alarm(5);
     // Socket File Descriptor
-    int newSFD = accept(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size);
-
-    alarm(0);
+    int newSFD = accept4(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size, SOCK_NONBLOCK);
 
     return newSFD;
 

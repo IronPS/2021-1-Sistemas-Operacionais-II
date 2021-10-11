@@ -8,6 +8,8 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
     options.add_options()
         ("h,help", "Print usage")
         ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
+        ("a,addresses", "List with the addresses of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<std::string>>()->default_value(""))
+        ("r,ports", "List with the ports of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
     ;
 
     // Input parsing block
