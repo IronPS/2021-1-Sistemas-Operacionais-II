@@ -7,7 +7,9 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
     // Add options here
     options.add_options()
         ("h,help", "Print usage")
-        ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
+        ("p,port", "Port that will treat clients", cxxopts::value<unsigned short>()->default_value("51366"))
+        ("i,id", "The ID of this replica", cxxopts::value<unsigned short>()->default_value("0"))
+        ("d,ids", "List with the IDs of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
         ("a,addresses", "List with the addresses of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<std::string>>()->default_value(""))
         ("r,ports", "List with the ports of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
     ;

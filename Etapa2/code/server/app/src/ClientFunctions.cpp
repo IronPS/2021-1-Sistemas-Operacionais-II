@@ -15,12 +15,14 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
     std::string username = std::string(packet.extra);
     
     bool connected = false;
-    if (packet.type == PacketData::LOGIN) {
+    if (packet.type == PacketData::LOGIN || packet.type == PacketData::RECONNECT) {
         SessionController* session = sm.createSession(packet.extra, csfd, connected);
 
         if (connected) {
-            strcpy(packet.payload, (std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username).c_str());
-            ServerConnectionManager::dataSend(csfd, packet);
+            if (packet.type == PacketData::LOGIN) {
+                strcpy(packet.payload, (std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username).c_str());
+                ServerConnectionManager::dataSend(csfd, packet);
+            }
 
             std::cout << "User " << username << " successfuly logged in\n";
 

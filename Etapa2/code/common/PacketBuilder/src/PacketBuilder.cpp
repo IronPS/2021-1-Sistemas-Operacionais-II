@@ -106,3 +106,17 @@ packet_t PacketBuilder::error(std::string reason) {
 
     return packet;
 }
+
+packet_t PacketBuilder::heartbeat(unsigned short id) {
+    packet_t packet;
+
+    packet.type = HEARTBEAT;
+    packet.seqn = 0;                        // TODO Ignored
+    packet.length = 0;
+    packet.timestamp = static_cast<uint64_t>(time(0));
+    packet.payload[0] = '\0';
+    strcpy(packet.extra, std::to_string(id).c_str());
+
+    return packet;
+}
+

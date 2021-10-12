@@ -1,8 +1,6 @@
 
 #include <ClientConnectionManager.hpp>
 
-int ClientConnectionManager::_socketDesc = -1;
-
 ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& input) {
     _user = input["user"].as<std::string>();
     _server = input["server"].as<std::string>();
@@ -25,6 +23,13 @@ ClientConnectionManager::~ClientConnectionManager() {
 
 bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking) {
     return _openConnection(exitOnFail, nonBlocking);
+}
+
+void ClientConnectionManager::closeConnection() {
+    if (_socketDesc != -1) {
+        close(_socketDesc);
+        _socketDesc = -1;
+    }
 }
 
 bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking) {

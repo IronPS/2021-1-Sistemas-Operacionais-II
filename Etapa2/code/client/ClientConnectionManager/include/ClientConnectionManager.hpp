@@ -23,15 +23,18 @@ class ClientConnectionManager {
     ~ClientConnectionManager();
 
     bool openConnection(bool exitOnFail = false, bool nonBlocking = true);
-    static ssize_t dataSend(PacketData::packet_t packet);
-    static ssize_t dataReceive(PacketData::packet_t& packet);
+    void closeConnection();
+    ssize_t dataSend(PacketData::packet_t packet);
+    ssize_t dataReceive(PacketData::packet_t& packet);
+
+    int getSFD() { return _socketDesc; }
 
  private:
     std::string _user;
     std::string _server;
     std::string _port;
 
-    static int _socketDesc;
+    int _socketDesc = -1;
 
     bool _openConnection(bool exitOnFail = true, bool nonBlocking = false);
     void _print_packet(PacketData::packet_t packet);

@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 class ServerConnectionManager {
  public:
@@ -19,6 +20,7 @@ class ServerConnectionManager {
      * Exits with error if it fails
     */
     ServerConnectionManager(const cxxopts::ParseResult& input);
+    ServerConnectionManager(const unsigned short port);
     ~ServerConnectionManager();
 
     /*

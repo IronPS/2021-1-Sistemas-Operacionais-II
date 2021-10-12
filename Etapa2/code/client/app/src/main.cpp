@@ -12,12 +12,12 @@
 
 static bool is_over = false;
 
-bool login(std::string user) {
+bool login(std::string user, ClientConnectionManager& cm) {
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
 
-    ClientConnectionManager::dataSend(loginPacket);
+    cm.dataSend(loginPacket);
 
-    auto bytes_received = ClientConnectionManager::dataReceive(loginPacket);
+    auto bytes_received = cm.dataReceive(loginPacket);
 
     bool accepted = false;
     if (bytes_received > 0 && loginPacket.type != PacketData::packet_type::ERROR) {
@@ -36,9 +36,9 @@ std::string readInput() {
     return input;    
 }
 
-void handleUserInput(std::string user) {
+void handleUserInput(std::string user, ClientConnectionManager& cm) {
     bool recognized;
-    CommandExecutor ce(user);
+    CommandExecutor ce(user, cm);
     std::chrono::seconds timeout(3);
     std::future<std::string> future = std::async(readInput); 
 
@@ -77,11 +77,11 @@ void handleUserInput(std::string user) {
     exit(0); // Quick and dirty way
 }
 
-void handleServerInput(std::string user) {
+void handleServerInput(std::string user, ClientConnectionManager& cm) {
     PacketData::packet_t packet;
     while (!is_over && signaling::_continue) {
         packet.type = PacketData::packet_type::NOTHING;
-        ClientConnectionManager::dataReceive(packet);
+        cm.dataReceive(packet);
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
@@ -123,15 +123,15 @@ int main(int argc, char* argv[]) {
 
     ClientConnectionManager cm(results);
 
-    bool logged = login(user);
+    bool logged = login(user, cm);
 
     std::vector<std::thread> threads;
 
     if (logged) {
-        std::thread t = std::thread(handleUserInput, user);
+        std::thread t = std::thread(handleUserInput, user, std::ref(cm));
         threads.push_back(std::move(t));
 
-        t = std::thread(handleServerInput, user);
+        t = std::thread(handleServerInput, user, std::ref(cm));
         threads.push_back(std::move(t));
 
     } else {

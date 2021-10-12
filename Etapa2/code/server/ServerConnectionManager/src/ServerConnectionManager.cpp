@@ -6,6 +6,11 @@ ServerConnectionManager::ServerConnectionManager(const cxxopts::ParseResult& inp
     _bindListeningSocket();
 }
 
+ServerConnectionManager::ServerConnectionManager(const unsigned short port) {
+    _port = std::to_string(port);
+    _bindListeningSocket();
+}
+
 ServerConnectionManager::~ServerConnectionManager() {
     if (_socketFileDesc != -1) {
         shutdown(_socketFileDesc, SHUT_RDWR);
@@ -90,6 +95,8 @@ void ServerConnectionManager::_bindListeningSocket() {
 
         exit(1);
     }
+
+    fcntl(_socketFileDesc, F_SETFL, fcntl(_socketFileDesc, F_GETFL, 0) | O_NONBLOCK);
 }
 
 int ServerConnectionManager::getConnection() {

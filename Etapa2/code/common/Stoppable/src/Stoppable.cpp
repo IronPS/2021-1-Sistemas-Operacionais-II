@@ -10,18 +10,24 @@ static void _kill(int) {
 
 static void _alarmHandler(int) { 
     signaling::_heartbeat = true;
+    alarm(5);
 }
 
 static struct sigaction sact;
 
 
 Stoppable::Stoppable() {
+    signaling::_heartbeat = true;
+
     signal(SIGINT, &_kill);
+    signal(SIGPIPE, SIG_IGN);
 
     sigemptyset(&sact.sa_mask);
     sact.sa_flags = 0;
     sact.sa_handler = _alarmHandler;
     sigaction(SIGALRM, &sact, NULL);
+    
+    alarm(5);
 }
 
 void Stoppable::registerSighup() {
