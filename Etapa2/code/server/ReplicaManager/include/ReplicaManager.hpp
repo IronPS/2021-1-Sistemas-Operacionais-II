@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <random>
+#include <fstream>
 
 #include <cxxopts/cxxopts.hpp>
 #include <ServerConnectionManager.hpp>
@@ -18,6 +19,12 @@
 
 class ReplicaManager {
  public:
+    typedef struct s_serverinfo {
+        std::string address;
+        std::string port;
+    } server_info_t;
+
+ public:
     ReplicaManager(const cxxopts::ParseResult& input);
     ~ReplicaManager();
 
@@ -26,6 +33,9 @@ class ReplicaManager {
     bool isLeader() { /*TODO return _state == State::LEADER; */ return _leaderID == _id; }
     bool waitingElection() { return _state == State::ELECTION; }
     PacketData::packet_t getLeaderInfo();
+
+    static server_info_t getNextServerInfo();
+
 
  private:
     unsigned short _id;
@@ -63,4 +73,7 @@ class ReplicaManager {
 
     bool _connectionCheck(unsigned short serverId);
     bool _connectionConfirm(unsigned short serverId, int sfd);
+
+ private:
+    static unsigned short _sinfoPt;
 };

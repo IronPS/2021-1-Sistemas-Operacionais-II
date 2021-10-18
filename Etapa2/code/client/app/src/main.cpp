@@ -9,15 +9,45 @@
 #include <PacketBuilder.hpp>
 #include <PacketTypes.hpp>
 #include <CommandExecutor.hpp>
+#include <ReplicaManager.hpp>
 
 static bool closed = false;
 static bool is_over = false;
 static bool server_lost = false;
 
+bool tryNextServer(ReplicaManager::server_info_t& sinfo, unsigned int timeout, time_t& timer) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    time_t t_now;
+    time(&t_now);
+    if (difftime(t_now, timer) > timeout) {
+        return false;
+    }
+
+    sinfo = ReplicaManager::getNextServerInfo();
+
+    return true;
+}
+
 bool login(std::string user, ClientConnectionManager& cm) {
     bool timedOut = false;
     unsigned int timeout = 20;
     time_t timer;
+    bool accepted = false;
+
+    ReplicaManager::server_info_t sinfo;
+
+    time(&timer);
+    while (!cm.openConnection(false, false) && signaling::_continue) {
+        timedOut = !tryNextServer(sinfo, timeout, timer);
+        if (timedOut) break;
+
+        std::cout << "Attempting server (" << sinfo.address << " , " << sinfo.port << ")" << std::endl;
+        cm.setAddress(sinfo.address);
+        cm.setPort(sinfo.port);
+    }
+
+    if (timedOut) return accepted;
+
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
@@ -26,7 +56,6 @@ bool login(std::string user, ClientConnectionManager& cm) {
 
     auto bytes_received = cm.dataReceive(packet);
 
-    bool accepted = false;
     if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
         accepted = true;
 
@@ -75,11 +104,26 @@ bool login(std::string user, ClientConnectionManager& cm) {
 }
 
 bool reconnect(std::string user, ClientConnectionManager& cm) {
+    bool accepted = false;
     bool timedOut = false;
     unsigned int timeout = 20;
     time_t timer;
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
     loginPacket.type = PacketData::packet_type::RECONNECT;
+
+    ReplicaManager::server_info_t sinfo;
+
+    time(&timer);
+    while (!cm.openConnection(false, false) && signaling::_continue) {
+        timedOut = !tryNextServer(sinfo, timeout, timer);
+        if (timedOut) break;
+
+        std::cout << "Attempting server (" << sinfo.address << " , " << sinfo.port << ")" << std::endl;
+        cm.setAddress(sinfo.address);
+        cm.setPort(sinfo.port);
+    }
+
+    if (timedOut) return accepted;
 
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
@@ -88,7 +132,6 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
 
     auto bytes_received = cm.dataReceive(packet);
 
-    bool accepted = false;
     if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
         accepted = true;
 
@@ -245,7 +288,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Attempting to login as '" << user << "' ... " << std::endl;
 
-    ClientConnectionManager cm(results);
+    ClientConnectionManager cm(results["server"].as<std::string>(), results["port"].as<unsigned short>());
 
     bool logged = login(user, cm);
 

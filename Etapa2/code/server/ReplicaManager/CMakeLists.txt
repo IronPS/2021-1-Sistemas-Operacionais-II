@@ -18,7 +18,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ServerApp-ConnectionManager
     PUBLIC ClientApp-ConnectionManager
     PRIVATE Common-Stoppable
-    PRIVATE Common-Semaphore
-    PRIVATE Common-PacketBuilder
+    PUBLIC Common-Semaphore
+    PUBLIC Common-PacketBuilder
     PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )

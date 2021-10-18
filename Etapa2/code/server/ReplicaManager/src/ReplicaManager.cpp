@@ -293,3 +293,41 @@ bool ReplicaManager::_connectionConfirm(unsigned short i, int sfd) {
     return success;
 
 }
+
+unsigned short ReplicaManager::_sinfoPt = 0;
+ReplicaManager::server_info_t ReplicaManager::getNextServerInfo() {
+    std::ifstream serverInfos("servers.data");
+    
+    server_info_t sinfo;
+
+    bool found = false;
+    std::string line;
+    if (serverInfos.good()) {
+        serverInfos.seekg(std::ios::beg);
+        for (int lineCursor = 0; std::getline(serverInfos, line); lineCursor++) {
+            if (lineCursor == _sinfoPt) {
+                found = true;
+                break;
+            }
+        }
+        
+        serverInfos.clear(); // Clear errors
+
+        if (!found) {
+            serverInfos.seekg(std::ios::beg);
+            std::getline(serverInfos, line);
+
+            _sinfoPt = 0;
+
+        }
+
+        _sinfoPt += 1;
+
+        size_t pos = line.find(' ');
+        sinfo.address = line.substr(0, pos);
+        sinfo.port = line.substr(pos+1);
+
+    }
+
+    return sinfo;
+}

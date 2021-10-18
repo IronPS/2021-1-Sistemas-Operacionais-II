@@ -2,7 +2,6 @@
 #include <ClientConnectionManager.hpp>
 
 ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& input) {
-    _user = input["user"].as<std::string>();
     _server = input["server"].as<std::string>();
     _port = std::to_string(input["port"].as<unsigned short>());
     
@@ -92,12 +91,13 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking)
         err = errno;
 
         close(_socketDesc);
+        _socketDesc = -1;
     }
 
     freeaddrinfo(addrs);
 
     if (_socketDesc == -1) {
-        std::cerr << "Connection error: "
+        std::cerr << "Connection error (s1): "
         << strerror(err)
         << std::endl;
         if (exitOnFail) exit(1);
@@ -105,7 +105,7 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking)
     }
 
     if (err != 0) {
-        std::cerr << "Connection error: "
+        std::cerr << "Connection error (e1): "
         << strerror(err)
         << std::endl;
         if (exitOnFail) exit(1);

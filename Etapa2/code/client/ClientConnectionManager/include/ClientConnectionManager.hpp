@@ -42,4 +42,5 @@ class ClientConnectionManager {
 
     bool _openConnection(bool exitOnFail = true, bool nonBlocking = false);
     void _print_packet(PacketData::packet_t packet);
+
 };
