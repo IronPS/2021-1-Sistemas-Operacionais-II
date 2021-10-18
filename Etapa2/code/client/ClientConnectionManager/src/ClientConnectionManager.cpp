@@ -6,7 +6,7 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
     _server = input["server"].as<std::string>();
     _port = std::to_string(input["port"].as<unsigned short>());
     
-    _openConnection();
+    _openConnection(true, false);
 
 }
 
@@ -30,6 +30,26 @@ void ClientConnectionManager::closeConnection() {
         close(_socketDesc);
         _socketDesc = -1;
     }
+}
+
+bool ClientConnectionManager::setAddress(std::string address) {
+    if (_socketDesc != -1) {
+        return false;
+    }
+
+    _server = address;
+
+    return true;
+}
+
+bool ClientConnectionManager::setPort(std::string port) {
+    if (_socketDesc != -1) {
+        return false;
+    }
+
+    _port = port;
+
+    return true;
 }
 
 bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking) {

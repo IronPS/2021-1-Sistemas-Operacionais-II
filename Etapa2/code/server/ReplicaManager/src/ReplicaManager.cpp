@@ -89,11 +89,7 @@ void ReplicaManager::handleReplicas() {
 }
 
 PacketData::packet_t ReplicaManager::getLeaderInfo() {
-    // TODO
-    // return PacketBuilder::leader();
-    PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
-    return packet;
+    return PacketBuilder::leaderInfo(_addresses[_leaderID], _cliPorts[_leaderID]);
 }
 
 void ReplicaManager::_receiveHeartbeat(unsigned short id, int sfd) {

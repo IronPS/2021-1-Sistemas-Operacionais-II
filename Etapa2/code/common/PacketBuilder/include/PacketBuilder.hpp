@@ -23,6 +23,7 @@ class PacketBuilder {
     static PacketData::packet_t error(std::string reason);
 
     static PacketData::packet_t heartbeat(unsigned short id);
+    static PacketData::packet_t leaderInfo(std::string address, unsigned short clientPort);
 
  private:
     static const uint _min_username_len = 4;

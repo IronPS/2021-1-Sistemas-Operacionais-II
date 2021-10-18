@@ -24,6 +24,10 @@ class ClientConnectionManager {
 
     bool openConnection(bool exitOnFail = false, bool nonBlocking = true);
     void closeConnection();
+
+    bool setAddress(std::string address);
+    bool setPort(std::string port);
+
     ssize_t dataSend(PacketData::packet_t packet);
     ssize_t dataReceive(PacketData::packet_t& packet);
 

@@ -13,19 +13,57 @@
 static bool is_over = false;
 
 bool login(std::string user, ClientConnectionManager& cm) {
+    bool timedOut = false;
+    unsigned int timeout = 20;
+    time_t timer;
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
+    PacketData::packet_t packet;
+    packet.type = PacketData::packet_type::NOTHING;
 
     cm.dataSend(loginPacket);
 
-    auto bytes_received = cm.dataReceive(loginPacket);
+    auto bytes_received = cm.dataReceive(packet);
 
     bool accepted = false;
-    if (bytes_received > 0 && loginPacket.type != PacketData::packet_type::ERROR) {
+    if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
         accepted = true;
 
+    } else if (packet.type == PacketData::packet_type::RECONNECT) {
+        time(&timer);
+
+        while (signaling::_continue) {
+            cm.closeConnection();
+
+            time_t t_now;
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+                break;
+            }
+            
+            cm.setAddress(std::string(packet.extra));
+            cm.setPort(std::string(packet.payload));
+
+            cm.openConnection(true, false);
+            cm.dataSend(loginPacket);
+
+            packet.type = PacketData::packet_type::NOTHING;
+            auto bytes_received = cm.dataReceive(packet);
+
+            if (packet.type == PacketData::packet_type::SUCCESS) {
+                accepted = true;
+                break;
+
+            } else if (packet.type != PacketData::packet_type::RECONNECT) {
+                break;
+
+            }
+
+        }
     }
 
-    std::cout << loginPacket.payload << std::endl;
+    if (!timedOut) std::cout << loginPacket.payload << std::endl;
+    else std::cout << "Reconnection timed-out" << std::endl;
 
     return accepted;
 }
