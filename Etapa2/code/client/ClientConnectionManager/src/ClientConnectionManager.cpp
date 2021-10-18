@@ -1,17 +1,18 @@
 
 #include <ClientConnectionManager.hpp>
 
-int ClientConnectionManager::_socketDesc = -1;
-
 ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& input) {
-    _user = input["user"].as<std::string>();
     _server = input["server"].as<std::string>();
     _port = std::to_string(input["port"].as<unsigned short>());
     
-    _openConnection();
+    _openConnection(true, false);
 
 }
 
+ClientConnectionManager::ClientConnectionManager(std::string serverAddress, unsigned short serverPort) {
+    _server = serverAddress;
+    _port = std::to_string(serverPort);
+}
 
 ClientConnectionManager::~ClientConnectionManager() {
     if (_socketDesc != -1) {
@@ -19,8 +20,39 @@ ClientConnectionManager::~ClientConnectionManager() {
     }
 }
 
-void ClientConnectionManager::_openConnection() {
-    if (_socketDesc != -1) return;
+bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking) {
+    return _openConnection(exitOnFail, nonBlocking);
+}
+
+void ClientConnectionManager::closeConnection() {
+    if (_socketDesc != -1) {
+        close(_socketDesc);
+        _socketDesc = -1;
+    }
+}
+
+bool ClientConnectionManager::setAddress(std::string address) {
+    if (_socketDesc != -1) {
+        return false;
+    }
+
+    _server = address;
+
+    return true;
+}
+
+bool ClientConnectionManager::setPort(std::string port) {
+    if (_socketDesc != -1) {
+        return false;
+    }
+
+    _port = port;
+
+    return true;
+}
+
+bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking) {
+    if (_socketDesc != -1) return false;
 
     struct addrinfo hints, *addrs = NULL;
     int err = 0;
@@ -41,7 +73,8 @@ void ClientConnectionManager::_openConnection() {
         std::cerr << "Error at getaddrinfo: "
         << gai_strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     for (struct addrinfo* addrpt = addrs; addrpt != NULL; addrpt = addrpt->ai_next) {
@@ -58,22 +91,25 @@ void ClientConnectionManager::_openConnection() {
         err = errno;
 
         close(_socketDesc);
+        _socketDesc = -1;
     }
 
     freeaddrinfo(addrs);
 
     if (_socketDesc == -1) {
-        std::cerr << "Connection error: "
+        std::cerr << "Connection error (s1): "
         << strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     if (err != 0) {
-        std::cerr << "Connection error: "
+        std::cerr << "Connection error (e1): "
         << strerror(err)
         << std::endl;
-        exit(1);
+        if (exitOnFail) exit(1);
+        return false;
     }
 
     // Set timeout
@@ -82,6 +118,9 @@ void ClientConnectionManager::_openConnection() {
     tv.tv_usec = 0;
     setsockopt(_socketDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
+    if (nonBlocking) fcntl(_socketDesc, F_SETFL, fcntl(_socketDesc, F_GETFL, 0) | O_NONBLOCK);
+    
+    return true;
 }
 
 // PURELY FOR DEBUG, delete this once client<->server communication is working

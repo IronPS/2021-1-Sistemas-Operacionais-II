@@ -12,11 +12,14 @@ namespace PacketData {
 
     typedef enum {
         LOGIN=4762,
+        RECONNECT,
+        WAIT,
         MESSAGE,
         FOLLOW,
         CLOSE,
         SUCCESS,
         ERROR,
+        HEARTBEAT,
         NOTHING
     } packet_type;
 

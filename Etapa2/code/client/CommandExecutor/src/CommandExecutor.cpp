@@ -1,26 +1,26 @@
 #include<CommandExecutor.hpp>
 #include<iostream>
 
-CommandExecutor::CommandExecutor(std::string user) : _user(user) {
+CommandExecutor::CommandExecutor(std::string user, ClientConnectionManager& cm) : _user(user), _cm(cm) {
 
 }
 
 void CommandExecutor::_sendMessage(std::string user, std::string message) {
     PacketData::packet_t messagePacket = PacketBuilder::message(message, user);
 
-    ClientConnectionManager::dataSend(messagePacket);
+    _cm.dataSend(messagePacket);
 }
 
 void CommandExecutor::_requestFollow(std::string followee) {
     PacketData::packet_t followPacket = PacketBuilder::follow(followee);
 
-    ClientConnectionManager::dataSend(followPacket);
+    _cm.dataSend(followPacket);
 }
 
 void CommandExecutor::_sendClose() {
     PacketData::packet_t closePacket = PacketBuilder::close();
 
-    ClientConnectionManager::dataSend(closePacket);
+    _cm.dataSend(closePacket);
 
     signaling::_continue = false;
 

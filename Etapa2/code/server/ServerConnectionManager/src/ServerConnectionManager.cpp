@@ -6,6 +6,11 @@ ServerConnectionManager::ServerConnectionManager(const cxxopts::ParseResult& inp
     _bindListeningSocket();
 }
 
+ServerConnectionManager::ServerConnectionManager(const unsigned short port) {
+    _port = std::to_string(port);
+    _bindListeningSocket();
+}
+
 ServerConnectionManager::~ServerConnectionManager() {
     if (_socketFileDesc != -1) {
         shutdown(_socketFileDesc, SHUT_RDWR);
@@ -90,17 +95,16 @@ void ServerConnectionManager::_bindListeningSocket() {
 
         exit(1);
     }
+
+    fcntl(_socketFileDesc, F_SETFL, fcntl(_socketFileDesc, F_GETFL, 0) | O_NONBLOCK);
 }
 
 int ServerConnectionManager::getConnection() {
     sockaddr_storage client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
 
-    alarm(5);
     // Socket File Descriptor
-    int newSFD = accept(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size);
-
-    alarm(0);
+    int newSFD = accept4(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size, SOCK_NONBLOCK);
 
     return newSFD;
 

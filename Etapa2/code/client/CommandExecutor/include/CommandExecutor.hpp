@@ -11,11 +11,13 @@
 
 class CommandExecutor {
     public:
-        CommandExecutor(std::string user);
+        CommandExecutor(std::string user, ClientConnectionManager& cm);
 
         bool execute(std::string fullCommand);
     private:
         std::string _user;
+        ClientConnectionManager& _cm;
+
         void _sendMessage(std::string user, std::string message);
         void _requestFollow(std::string followee);
         void _sendClose();
