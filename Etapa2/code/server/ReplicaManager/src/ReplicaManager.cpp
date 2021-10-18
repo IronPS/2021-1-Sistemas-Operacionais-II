@@ -6,10 +6,12 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _addresses = input["addresses"].as<std::vector<std::string>>();
-    _ports = input["ports"].as<std::vector<unsigned short>>();
+    _auxPorts = input["auxports"].as<std::vector<unsigned short>>();
+    _cliPorts = input["cliports"].as<std::vector<unsigned short>>();
 
-    assert(_addresses.size() == _ports.size());
+    assert(_addresses.size() == _auxPorts.size());
     assert(_addresses.size() == _ids.size());
+    assert(_addresses.size() == _cliPorts.size());
 
     time_t timer;
     _socketFileDescriptors.resize(_addresses.size());
@@ -21,14 +23,14 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
         if (i == _id) continue;
         time(&timer);
         _lastHeartbeat[i] = timer;
-        _cms[i] = new ClientConnectionManager(_addresses[i], _ports[i]);
+        _cms[i] = new ClientConnectionManager(_addresses[i], _auxPorts[i]);
     }
 
     _state = State::Election;
 
     signaling::_heartbeat = true;
 
-    if (_ports.size() > 0) _sm = new ServerConnectionManager(_ports[_id]);
+    if (_auxPorts.size() > 0) _sm = new ServerConnectionManager(_auxPorts[_id]);
 }
 
 ReplicaManager::~ReplicaManager() {
@@ -40,7 +42,7 @@ ReplicaManager::~ReplicaManager() {
 }
 
 void ReplicaManager::handleReplicas() {
-    if (_ports.size() == 0) return;
+    if (_auxPorts.size() == 0) return;
 
     PacketData::packet_t heartbeat;
 
@@ -84,6 +86,14 @@ void ReplicaManager::handleReplicas() {
         if (th.joinable())
             th.join();
     }
+}
+
+PacketData::packet_t ReplicaManager::getLeaderInfo() {
+    // TODO
+    // return PacketBuilder::leader();
+    PacketData::packet_t packet;
+    packet.type = PacketData::packet_type::NOTHING;
+    return packet;
 }
 
 void ReplicaManager::_receiveHeartbeat(unsigned short id, int sfd) {

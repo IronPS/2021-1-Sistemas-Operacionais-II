@@ -1,7 +1,7 @@
 
 #include <ClientFunctions.hpp>
 
-void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm) {
+void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm, ReplicaManager& rm) {
     PacketData::packet_t packet;
     // Time in seconds for heartbeat repetition
     unsigned int hbTime = 5;
@@ -22,6 +22,7 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
         if (connected) {
             if (packet.type == PacketData::LOGIN) {
+                
                 strcpy(packet.payload, (std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username).c_str());
                 ServerConnectionManager::dataSend(csfd, packet);
             }

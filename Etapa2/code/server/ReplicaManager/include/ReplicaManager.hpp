@@ -23,6 +23,9 @@ class ReplicaManager {
 
     void handleReplicas();
 
+    bool isLeader() { return _leaderID == _id; }
+    PacketData::packet_t getLeaderInfo();
+
  private:
     unsigned short _id;
     std::vector<unsigned short> _ids; 
@@ -40,7 +43,8 @@ class ReplicaManager {
 
  private:
     std::vector<std::string> _addresses;
-    std::vector<unsigned short> _ports;
+    std::vector<unsigned short> _auxPorts;
+    std::vector<unsigned short> _cliPorts;
     
     std::vector<int> _socketFileDescriptors;
     Semaphore _sfdSem;

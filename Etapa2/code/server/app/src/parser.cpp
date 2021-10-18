@@ -11,7 +11,8 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
         ("i,id", "The ID of this replica", cxxopts::value<unsigned short>()->default_value("0"))
         ("d,ids", "List with the IDs of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
         ("a,addresses", "List with the addresses of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<std::string>>()->default_value(""))
-        ("r,ports", "List with the ports of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
+        ("r,auxports", "List with the auxiliary ports of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
+        ("s,cliports", "List with the client ports of all replicas separated by commas with no spaces in-between", cxxopts::value<std::vector<unsigned short>>()->default_value(""))
     ;
 
     // Input parsing block

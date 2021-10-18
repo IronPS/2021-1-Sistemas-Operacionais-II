@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
         csfd = cm.getConnection();
 
         if (csfd != -1) {
-            t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm));
+            t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm), std::ref(rm));
             threads.push_back(std::move(t));
         }
 
