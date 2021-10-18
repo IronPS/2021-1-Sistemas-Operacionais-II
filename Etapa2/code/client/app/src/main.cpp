@@ -10,13 +10,77 @@
 #include <PacketTypes.hpp>
 #include <CommandExecutor.hpp>
 
+static bool closed = false;
 static bool is_over = false;
+static bool server_lost = false;
 
 bool login(std::string user, ClientConnectionManager& cm) {
     bool timedOut = false;
     unsigned int timeout = 20;
     time_t timer;
     PacketData::packet_t loginPacket = PacketBuilder::login(user);
+    PacketData::packet_t packet;
+    packet.type = PacketData::packet_type::NOTHING;
+
+    cm.dataSend(loginPacket);
+
+    auto bytes_received = cm.dataReceive(packet);
+
+    bool accepted = false;
+    if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
+        accepted = true;
+
+    } else if (packet.type == PacketData::packet_type::RECONNECT) {
+        time(&timer);
+
+        while (signaling::_continue) {
+            cm.closeConnection();
+
+            time_t t_now;
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+                break;
+            }
+            
+            cm.setAddress(std::string(packet.extra));
+            cm.setPort(std::string(packet.payload));
+
+            cm.openConnection(true, false);
+            cm.dataSend(loginPacket);
+
+            packet.type = PacketData::packet_type::NOTHING;
+            auto bytes_received = cm.dataReceive(packet);
+
+            if (packet.type == PacketData::packet_type::SUCCESS) {
+                accepted = true;
+                break;
+
+            } else if (packet.type != PacketData::packet_type::WAIT) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                time(&timer);
+            
+            } else if (packet.type != PacketData::packet_type::RECONNECT) {
+                break;
+
+            }
+
+        }
+    }
+
+    if (!timedOut) std::cout << packet.payload << std::endl;
+    else std::cout << "Login timed-out" << std::endl;
+
+    return accepted;
+}
+
+bool reconnect(std::string user, ClientConnectionManager& cm) {
+    bool timedOut = false;
+    unsigned int timeout = 20;
+    time_t timer;
+    PacketData::packet_t loginPacket = PacketBuilder::login(user);
+    loginPacket.type = PacketData::packet_type::RECONNECT;
+
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
 
@@ -108,12 +172,14 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
         } else {
             ce.execute("close");
             is_over = true;
+            closed = true;
         }
 
     } while(!is_over && signaling::_continue);
 
     if (!signaling::_continue) {
         ce.execute("close");
+        closed = true;
     }
 
     exit(0); // Quick and dirty way
@@ -134,8 +200,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
         if (difftime(t_now, lastHeartbeat) > hbTimeout) {
             std::cout << "Server Lost" << std::endl;
             cm.closeConnection();
-            // TODO reconnect
-            signaling::_continue = false;
+            is_over = true;
         }
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
@@ -153,6 +218,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
                             << "Closed by the server" 
                             << std::endl;
                 is_over = true;
+                closed = true;
                 // No need to recreate user prompt here
             } else if (packet.type == PacketData::packet_type::MESSAGE) {
                 std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
@@ -199,6 +265,32 @@ int main(int argc, char* argv[]) {
     for (std::thread& th : threads) {
         if (th.joinable())
             th.join();
+    }
+
+    if (logged) {
+        threads.clear();
+
+        while (!closed && is_over && server_lost) {
+            is_over = false;
+            server_lost = false;
+
+            logged = reconnect(user, cm);
+
+            if (logged) {
+                std::thread t = std::thread(handleUserInput, user, std::ref(cm));
+                threads.push_back(std::move(t));
+
+                t = std::thread(handleServerInput, user, std::ref(cm));
+                threads.push_back(std::move(t));
+            }
+
+            for (std::thread& th : threads) {
+                if (th.joinable())
+                    th.join();
+            }
+
+        }
+
     }
 
     exit(0);
