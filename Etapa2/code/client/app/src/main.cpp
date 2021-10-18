@@ -41,7 +41,7 @@ bool login(std::string user, ClientConnectionManager& cm) {
         timedOut = !tryNextServer(sinfo, timeout, timer);
         if (timedOut) break;
 
-        std::cout << "Attempting server (" << sinfo.address << " , " << sinfo.port << ")" << std::endl;
+        std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
         cm.setAddress(sinfo.address);
         cm.setPort(sinfo.port);
     }
@@ -118,7 +118,7 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
         timedOut = !tryNextServer(sinfo, timeout, timer);
         if (timedOut) break;
 
-        std::cout << "Attempting server (" << sinfo.address << " , " << sinfo.port << ")" << std::endl;
+        std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
         cm.setAddress(sinfo.address);
         cm.setPort(sinfo.port);
     }
@@ -179,26 +179,43 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     return accepted;
 }
 
-std::string readInput() {
-    std::string input;
-    std::getline(std::cin, input);
-    return input;    
+bool getline_async(std::string& str, char delim = '\n') {
+    static std::string lineSoFar;
+
+    char inChar;
+    int charsRead = 0;
+    bool lineRead = false;
+    str = "";
+
+    std::ios_base::sync_with_stdio(false);
+    do {
+        charsRead = std::cin.readsome(&inChar, 1);
+        if (charsRead == 1) {
+            // if the delimiter is read then return the string so far
+            if (inChar == delim) {
+                str = lineSoFar;
+                lineSoFar = "";
+                lineRead = true;
+            } else {  // otherwise add it to the string so far
+                lineSoFar.append(1, inChar);
+            }
+        }
+    } while (charsRead != 0 && !lineRead && !is_over && signaling::_continue);
+
+    return lineRead;
 }
 
 void handleUserInput(std::string user, ClientConnectionManager& cm) {
     bool recognized;
     CommandExecutor ce(user, cm);
     std::chrono::seconds timeout(3);
-    std::future<std::string> future = std::async(readInput); 
 
     std::string command;
     std::cout << user << "> ";
     do {
         if (std::cin) {
             std::cin.clear();
-            if (future.wait_for(timeout) == std::future_status::ready) {
-                command = future.get();
-
+            if (getline_async(command)) {
                 recognized = ce.execute(command);
 
                 if (!recognized && std::cin) {
@@ -206,8 +223,7 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
                 }
             
                 if(!is_over && signaling::_continue) { // Conditional to avoid creating a new prompt when user wants to close
-                    std::cout << user << "> ";  
-                    future = std::async(readInput);
+                    std::cout << user << "> "; 
                 }
             
             }
@@ -225,7 +241,6 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
         closed = true;
     }
 
-    exit(0); // Quick and dirty way
 }
 
 void handleServerInput(std::string user, ClientConnectionManager& cm) {
@@ -244,6 +259,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
             std::cout << "Server Lost" << std::endl;
             cm.closeConnection();
             is_over = true;
+            server_lost =  true;
         }
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
@@ -279,6 +295,21 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
     }
 }
 
+void launchHandlers(std::string user, ClientConnectionManager& cm) {
+    std::vector<std::thread> threads;
+
+    std::thread t = std::thread(handleUserInput, user, std::ref(cm));
+    threads.push_back(std::move(t));
+
+    t = std::thread(handleServerInput, user, std::ref(cm));
+    threads.push_back(std::move(t));
+
+    for (std::thread& th : threads) {
+        if (th.joinable())
+            th.join();
+    }
+}
+
 int main(int argc, char* argv[]) {
     Stoppable stop;
     
@@ -292,45 +323,32 @@ int main(int argc, char* argv[]) {
 
     bool logged = login(user, cm);
 
-    std::vector<std::thread> threads;
-
     if (logged) {
-        std::thread t = std::thread(handleUserInput, user, std::ref(cm));
-        threads.push_back(std::move(t));
-
-        t = std::thread(handleServerInput, user, std::ref(cm));
-        threads.push_back(std::move(t));
+        launchHandlers(user, cm);
 
     } else {
         std::cout << "Failed to login" << std::endl;
     }
 
-    for (std::thread& th : threads) {
-        if (th.joinable())
-            th.join();
-    }
-
     if (logged) {
-        threads.clear();
-
         while (!closed && is_over && server_lost) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            ReplicaManager::server_info_t sinfo = ReplicaManager::getNextServerInfo();
+
+            std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
+
+            cm.setAddress(sinfo.address);
+            cm.setPort(sinfo.port);
+
             is_over = false;
             server_lost = false;
 
             logged = reconnect(user, cm);
 
             if (logged) {
-                std::thread t = std::thread(handleUserInput, user, std::ref(cm));
-                threads.push_back(std::move(t));
-
-                t = std::thread(handleServerInput, user, std::ref(cm));
-                threads.push_back(std::move(t));
+                launchHandlers(user, cm);
             }
 
-            for (std::thread& th : threads) {
-                if (th.joinable())
-                    th.join();
-            }
 
         }
 
