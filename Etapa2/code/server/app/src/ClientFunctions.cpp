@@ -3,8 +3,10 @@
 
 void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceManager& pm) {
     PacketData::packet_t packet;
+    // Time in seconds for heartbeat repetition
+    unsigned int hbTime = 5;
 
-    // Set timeout
+    // Set socket timeout
     struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 500 * 1000; // 500 milliseconds
@@ -26,6 +28,9 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
 
             std::cout << "User " << username << " successfuly logged in\n";
 
+            ServerConnectionManager::dataSend(csfd, PacketBuilder::heartbeat(0));
+            time_t lastHeartbeat;
+            time(&lastHeartbeat);
             bool is_over = false;
             while(signaling::_continue && !is_over) {
                 session->deliverMessages();
@@ -79,6 +84,13 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
                     }
                 }
 
+                time_t t_now;
+                time(&t_now);
+                if (difftime(t_now, lastHeartbeat) > hbTime) {
+                    ServerConnectionManager::dataSend(csfd, PacketBuilder::heartbeat(0));
+                    lastHeartbeat = t_now;
+                }
+
             }
 
         } else {
@@ -88,8 +100,9 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
             << "\tSent " << bytes << " bytes" << std::endl;
         }
 
-        sm.closeSession(username, csfd);
-        std::cout << "Closed user " << username << " session\n" << std::endl;
+        // Must not close user session on exit
+        // sm.closeSession(username, csfd);
+        // std::cout << "Closed user " << username << " session\n" << std::endl;
 
     } else {
         // TODO invalid command received error

@@ -79,16 +79,32 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
 
 void handleServerInput(std::string user, ClientConnectionManager& cm) {
     PacketData::packet_t packet;
+
+    unsigned int hbTimeout = 20;
+    time_t lastHeartbeat;
+    time(&lastHeartbeat);
     while (!is_over && signaling::_continue) {
         packet.type = PacketData::packet_type::NOTHING;
         cm.dataReceive(packet);
+
+        time_t t_now;
+        time(&t_now);
+        if (difftime(t_now, lastHeartbeat) > hbTimeout) {
+            std::cout << "Server Lost" << std::endl;
+            cm.closeConnection();
+            // TODO reconnect
+            signaling::_continue = false;
+        }
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
         if (signaling::_continue) {
             std::cout << '\n';  // Get out of user prompt
 
-            if (packet.type == PacketData::packet_type::CLOSE) {
+            if (packet.type == PacketData::packet_type::HEARTBEAT) {
+                time(&lastHeartbeat);
+
+            } else if (packet.type == PacketData::packet_type::CLOSE) {
                 std::cout   << "\e[1;31m"   // Color RED for Server
                             << "SERVER: " 
                             << "\e[0m"  // Restore normal color
