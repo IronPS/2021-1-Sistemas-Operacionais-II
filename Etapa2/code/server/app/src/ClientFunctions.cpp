@@ -139,12 +139,18 @@ bool ClientFunctions::reconnect(std::string username, int csfd, SessionMonitor& 
 
     std::cout << "User " << username << " tried to log in\n";
     do {
-        ServerConnectionManager::dataSend(csfd, rm.getLeaderInfo());
-        auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
-    } while (packet.type == PacketData::RECONNECT && !rm.isLeader());
+        /*if (rm.waitingElection) {
+            packet.type = PacketData::packet_type::WAIT;
+            ServerConnectionManager::dataSend(csfd, packet);
+        } else {*/
+            ServerConnectionManager::dataSend(csfd, rm.getLeaderInfo());
+            auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
+        //}
+
+    } while (packet.type == PacketData::RECONNECT && /* TODO ( rm.waitingElection() || !rm.isLeader() ) */ !rm.isLeader());
     
     if (rm.isLeader()) {
-        ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Successfuly reconnected in as: ") + username));
+        ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Successfuly reconnected as: ") + username));
     
     } else {
         sm.closeSession(username, csfd);

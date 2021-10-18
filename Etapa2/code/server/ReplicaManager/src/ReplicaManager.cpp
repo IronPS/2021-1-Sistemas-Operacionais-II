@@ -26,7 +26,7 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
         _cms[i] = new ClientConnectionManager(_addresses[i], _auxPorts[i]);
     }
 
-    _state = State::Election;
+    _state = State::ELECTION;
 
     signaling::_heartbeat = true;
 

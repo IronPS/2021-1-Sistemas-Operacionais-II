@@ -54,6 +54,10 @@ bool login(std::string user, ClientConnectionManager& cm) {
                 accepted = true;
                 break;
 
+            } else if (packet.type != PacketData::packet_type::WAIT) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                time(&timer);
+            
             } else if (packet.type != PacketData::packet_type::RECONNECT) {
                 break;
 
@@ -62,7 +66,7 @@ bool login(std::string user, ClientConnectionManager& cm) {
         }
     }
 
-    if (!timedOut) std::cout << loginPacket.payload << std::endl;
+    if (!timedOut) std::cout << packet.payload << std::endl;
     else std::cout << "Reconnection timed-out" << std::endl;
 
     return accepted;

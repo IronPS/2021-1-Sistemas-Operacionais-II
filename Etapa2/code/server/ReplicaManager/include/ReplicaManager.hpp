@@ -23,7 +23,8 @@ class ReplicaManager {
 
     void handleReplicas();
 
-    bool isLeader() { return _leaderID == _id; }
+    bool isLeader() { /*TODO return _state == State::LEADER; */ return _leaderID == _id; }
+    bool waitingElection() { return _state == State::ELECTION; }
     PacketData::packet_t getLeaderInfo();
 
  private:
@@ -31,7 +32,7 @@ class ReplicaManager {
     std::vector<unsigned short> _ids; 
 
  private:
-    enum State {Replica, Leader, Election};
+    enum State {REPLICA, LEADER, ELECTION};
     State _state;
     unsigned short _leaderID = 0;
 
