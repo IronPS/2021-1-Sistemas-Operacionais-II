@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 
+#include <ElectionManager.hpp>
 #include <ServerConnectionManager.hpp>
 #include <ClientConnectionManager.hpp>
 #include <Stoppable.hpp>
@@ -11,7 +12,8 @@
 
 class ReplicaConnection {
  public:
-    ReplicaConnection(unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
+    ReplicaConnection(ElectionManager& em,
+                      unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                       unsigned short otherID, std::string otherAddr, unsigned int otherPort);
     ~ReplicaConnection();
 
@@ -48,5 +50,11 @@ class ReplicaConnection {
     void _sendHeartbeat();
     unsigned int _heartbeatInterval = 1; // 1 second
     time_t _lastSentHeartbeat;
+
+ private:
+    ElectionManager& _em;
+
+ private:
+    bool _attemptingConnectionMessage = true;
 
 };

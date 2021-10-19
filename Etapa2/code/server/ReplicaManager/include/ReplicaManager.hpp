@@ -5,6 +5,7 @@
 
 #include <ReplicaConnection.hpp>
 #include <PacketBuilder.hpp>
+#include <ElectionManager.hpp>
 
 #include <assert.h>
 
@@ -39,5 +40,7 @@ class ReplicaManager {
     unsigned short _leaderID = 0;
 
     static unsigned short _sinfoPt;
+
+    ElectionManager _em;
 
 };

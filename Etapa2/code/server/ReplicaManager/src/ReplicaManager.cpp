@@ -2,7 +2,7 @@
 #include <ReplicaManager.hpp>
 
 ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input) 
-: _id(input["id"].as<unsigned short>())
+: _id(input["id"].as<unsigned short>()), _em(input)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _addresses = input["addresses"].as<std::vector<std::string>>();
@@ -33,8 +33,12 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
         int myPortPos = _id * (size - 1) + count;
         int otherPortPos = i * (size - 1) + _id + mod;
 
-        _connections.push_back(std::shared_ptr<ReplicaConnection>(new ReplicaConnection(_id, _addresses[_id], auxPorts[myPortPos],
-                          _ids[i], _addresses[i], auxPorts[otherPortPos])));
+        _connections.push_back(std::shared_ptr<ReplicaConnection>(
+            new ReplicaConnection(_em,
+                                  _id, _addresses[_id], auxPorts[myPortPos],
+                                  _ids[i], _addresses[i], auxPorts[otherPortPos])
+            )
+        );
 
         count += 1;
 

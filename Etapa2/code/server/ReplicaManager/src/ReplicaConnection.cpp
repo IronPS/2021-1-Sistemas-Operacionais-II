@@ -1,8 +1,10 @@
 
 #include <ReplicaManager.hpp>
 
-ReplicaConnection::ReplicaConnection(unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
+ReplicaConnection::ReplicaConnection(ElectionManager& em,
+                                     unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                                      unsigned short otherID, std::string otherAddr, unsigned int otherPort)
+: _em(em)
 {
     _thisID = thisID;
     _otherID = otherID;
@@ -57,7 +59,11 @@ void ReplicaConnection::loop() {
 }
 
 void ReplicaConnection::_connect() {
-    std::cout << "Attempting connection with " << _otherID << std::endl;
+    if (_attemptingConnectionMessage) {
+        std::cout << "Attempting connection with " << _otherID << std::endl;
+        _attemptingConnectionMessage = false;
+    }
+
     if (_isServer) {
         _sfd = _sm->getConnection();
         if (_sfd != -1) _connected = true;
@@ -71,6 +77,7 @@ void ReplicaConnection::_connect() {
     if (_connected) {
         time(&_lastReceivedHeartbeat);
         std::cout << "Connected to " << _otherID << "\n";
+        _attemptingConnectionMessage = true;
     }
 
 }
@@ -128,4 +135,7 @@ void ReplicaConnection::_lostConnection() {
 
     std::cout << "Lost server " << _otherID << std::endl;
 
+    if (_otherID == _em.getLeaderID()) {
+        _em.unsetLeaderIsAlive();
+    }
 }
