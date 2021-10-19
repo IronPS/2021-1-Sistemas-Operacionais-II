@@ -24,6 +24,7 @@ class PacketBuilder {
 
     static PacketData::packet_t heartbeat(unsigned short id);
     static PacketData::packet_t leaderInfo(std::string address, unsigned short clientPort);
+    static PacketData::packet_t serverSignal(unsigned short id, PacketData::packet_type type);
 
  private:
     static const uint _min_username_len = 4;

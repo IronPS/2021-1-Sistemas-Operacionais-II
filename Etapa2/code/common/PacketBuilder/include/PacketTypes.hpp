@@ -20,6 +20,9 @@ namespace PacketData {
         SUCCESS,
         ERROR,
         HEARTBEAT,
+        ELECTION,
+        ANSWER,
+        COORDINATOR,
         NOTHING
     } packet_type;
 
