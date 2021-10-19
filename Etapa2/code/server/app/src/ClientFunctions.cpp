@@ -132,9 +132,6 @@ void ClientFunctions::handleUser(std::string username, int csfd, SessionControll
 
     }
 
-    if (is_over) {
-        signaling::_continue = false;
-    }
 }
 
 bool ClientFunctions::reconnect(std::string username, int csfd, SessionMonitor& sm, ReplicaManager& rm) {
