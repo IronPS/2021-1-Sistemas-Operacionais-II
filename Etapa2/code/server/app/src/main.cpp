@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::thread> threads;
     int csfd = -1;
 
-    std::thread t = std::thread(&ReplicaManager::handleReplicas, &rm);
+    std::thread t = std::thread(&ReplicaManager::start, &rm);
     threads.push_back(std::move(t));
     while (signaling::_continue) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));

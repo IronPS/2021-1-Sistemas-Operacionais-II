@@ -132,3 +132,16 @@ PacketData::packet_t PacketBuilder::leaderInfo(std::string address, unsigned sho
 
     return packet;
 }
+
+PacketData::packet_t PacketBuilder::serverSignal(unsigned short id, PacketData::packet_type type) {
+    packet_t packet;
+
+    packet.type = type;
+    packet.seqn = 0;                        // TODO Ignored
+    packet.length = 0;
+    packet.timestamp = static_cast<uint64_t>(time(0));
+    packet.payload[0] = '\0';
+    strcpy(packet.extra, std::to_string(id).c_str());
+
+    return packet;
+}

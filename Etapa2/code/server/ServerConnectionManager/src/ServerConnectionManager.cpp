@@ -104,7 +104,7 @@ int ServerConnectionManager::getConnection() {
     socklen_t client_addr_size = sizeof(client_addr);
 
     // Socket File Descriptor
-    int newSFD = accept4(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size, SOCK_NONBLOCK);
+    int newSFD = accept(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size);
 
     return newSFD;
 
