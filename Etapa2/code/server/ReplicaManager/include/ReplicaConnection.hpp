@@ -15,7 +15,7 @@ class ReplicaConnection {
                       unsigned short otherID, std::string otherAddr, unsigned int otherPort);
     ~ReplicaConnection();
 
-    void start();
+    void loop();
 
     bool connected() const { return _connected; }
 

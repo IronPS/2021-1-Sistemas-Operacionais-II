@@ -45,20 +45,15 @@ ReplicaConnection::~ReplicaConnection() {
 
 }
 
-void ReplicaConnection::start() {
-    while (signaling::_continue) {
-        if (!_connected) {
-            _connect();
-            if (!_connected) std::this_thread::sleep_for(std::chrono::seconds(_timeout/5));
+void ReplicaConnection::loop() {
+    if (!_connected)
+        _connect();
 
-        } else {
-            _receivePacket();
-            _sendHeartbeat();
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
+    if (_connected) {
+        _receivePacket();
+        _sendHeartbeat();
     }
+
 }
 
 void ReplicaConnection::_connect() {

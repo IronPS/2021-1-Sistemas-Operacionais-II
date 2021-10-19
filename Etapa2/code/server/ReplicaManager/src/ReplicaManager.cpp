@@ -47,15 +47,12 @@ ReplicaManager::~ReplicaManager() {
 }
 
 void ReplicaManager::start() {
-    std::vector<std::thread> threads;
-    for (auto con : _connections) {
-        std::thread t = std::thread(&ReplicaConnection::start, con);
-        threads.push_back(std::move(t));
-    }
+    
+    while (signaling::_continue) {
+        for (auto con : _connections) {
+            con->loop();
+        }
 
-    for (std::thread& th : threads) {
-        if (th.joinable())
-            th.join();
     }
 }
 
