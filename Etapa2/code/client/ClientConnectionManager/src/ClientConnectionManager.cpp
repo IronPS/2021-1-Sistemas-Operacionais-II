@@ -20,8 +20,8 @@ ClientConnectionManager::~ClientConnectionManager() {
     }
 }
 
-bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking) {
-    return _openConnection(exitOnFail, nonBlocking);
+bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking, bool ignoreErrorMessage) {
+    return _openConnection(exitOnFail, nonBlocking, ignoreErrorMessage);
 }
 
 void ClientConnectionManager::closeConnection() {
@@ -51,7 +51,7 @@ bool ClientConnectionManager::setPort(std::string port) {
     return true;
 }
 
-bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking) {
+bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking, bool ignoreErrorMessage) {
     if (_socketDesc != -1) return false;
 
     struct addrinfo hints, *addrs = NULL;
@@ -70,9 +70,11 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking)
     );
 
     if (err != 0) {
-        std::cerr << "Error at getaddrinfo: "
-        << gai_strerror(err)
-        << std::endl;
+        if (!ignoreErrorMessage) {
+            std::cerr << "Error at getaddrinfo: "
+            << gai_strerror(err)
+            << std::endl;
+        }
         if (exitOnFail) exit(1);
         return false;
     }
@@ -97,17 +99,21 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking)
     freeaddrinfo(addrs);
 
     if (_socketDesc == -1) {
-        std::cerr << "Connection error (s1): "
-        << strerror(err)
-        << std::endl;
+        if (!ignoreErrorMessage) {
+            std::cerr << "Connection error (s1): "
+            << strerror(err)
+            << std::endl;
+        }
         if (exitOnFail) exit(1);
         return false;
     }
 
     if (err != 0) {
-        std::cerr << "Connection error (e1): "
-        << strerror(err)
-        << std::endl;
+        if (!ignoreErrorMessage) {
+            std::cerr << "Connection error (e1): "
+            << strerror(err)
+            << std::endl;
+        }
         if (exitOnFail) exit(1);
         return false;
     }

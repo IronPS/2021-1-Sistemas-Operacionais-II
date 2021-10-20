@@ -22,7 +22,7 @@ class ClientConnectionManager {
     ClientConnectionManager(std::string serverAddress, unsigned short serverPort);
     ~ClientConnectionManager();
 
-    bool openConnection(bool exitOnFail = false, bool nonBlocking = true);
+    bool openConnection(bool exitOnFail = false, bool nonBlocking = true, bool ignoreErrorMessage = false);
     void closeConnection();
 
     bool setAddress(std::string address);
@@ -40,7 +40,7 @@ class ClientConnectionManager {
 
     int _socketDesc = -1;
 
-    bool _openConnection(bool exitOnFail = true, bool nonBlocking = false);
+    bool _openConnection(bool exitOnFail = true, bool nonBlocking = false, bool ignoreErrorMessage = false);
     void _print_packet(PacketData::packet_t packet);
 
 };

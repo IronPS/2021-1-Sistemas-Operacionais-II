@@ -38,6 +38,7 @@ class ReplicaConnection {
     ServerConnectionManager* _sm = nullptr;
 
     bool _connected = false;
+    bool _first_connection = true;
     void _connect();
     void _lostConnection();
 

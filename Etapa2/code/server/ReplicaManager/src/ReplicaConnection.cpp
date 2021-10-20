@@ -48,8 +48,9 @@ ReplicaConnection::~ReplicaConnection() {
 }
 
 void ReplicaConnection::loop() {
-    if (!_connected)
+    if (!_connected && _first_connection) {
         _connect();
+    }
 
     if (_connected) {
         _receivePacket();
@@ -66,11 +67,18 @@ void ReplicaConnection::_connect() {
 
     if (_isServer) {
         _sfd = _sm->getConnection();
-        if (_sfd != -1) _connected = true;
+        if (_sfd != -1) {
+            _connected = true;
+            _first_connection = false;
+        }
 
     } else {
-        _connected = _cm->openConnection(false, false);
-        if (_connected) _sfd = _cm->getSFD();
+        _connected = _cm->openConnection(false, false, true);
+        if (_connected) {
+            _sfd = _cm->getSFD();
+            _first_connection = false;
+
+        }
 
     }
 
@@ -107,6 +115,7 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
 
             case PacketData::packet_type::ANSWER:
                 _em.receivedAnswer();
+                std::cout << "Received answer from " << _otherID << "\n";
                 break;
 
             case PacketData::packet_type::COORDINATOR:
