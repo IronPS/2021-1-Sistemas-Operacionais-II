@@ -2,7 +2,7 @@
 #include <ElectionManager.hpp>
 
 ElectionManager::ElectionManager(const cxxopts::ParseResult& input) 
-: _id(input["id"].as<unsigned short>()), _sem(1)
+: _id(input["id"].as<unsigned short>())
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
 

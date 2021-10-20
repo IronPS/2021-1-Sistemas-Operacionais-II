@@ -15,23 +15,23 @@ class ElectionManager {
     ~ElectionManager();
 
  public:
-    bool isLeader() { _sem.wait(); _sem.notify(); return _isLeader; }
-    unsigned short getLeaderID() { _sem.wait(); _sem.notify(); return _leaderID; }
-    bool asyncIsLeader() { return _isLeader; }
-    unsigned short asyncGetLeaderID() { return _leaderID; }
+    bool isLeader() { if (_locked) return false; return _isLeader; }
+    unsigned short getLeaderID() { if (_locked) return 0; return _leaderID; }
+    bool unlockedIsLeader() { return _isLeader; }
+    unsigned short unlockedGetLeaderID() { return _leaderID; }
     Action action();
 
     void step();
-    void block() { _sem.wait(); }
-    void unblock() {_sem.notify(); }
+    void block() { _locked = true; }
+    void unblock() { _locked = false; }
 
  public:
-    bool leaderIsAlive() { _sem.wait(); _sem.notify(); return _leaderIsAlive; }
-    bool asyncLeaderIsAlive() { return _leaderIsAlive; }
+    bool leaderIsAlive() { if (_locked) return false; return _leaderIsAlive; }
+    bool unlockedLeaderIsAlive() { return _leaderIsAlive; }
     void unsetLeaderIsAlive();
 
  public:
-    bool waitingElection() { _sem.wait(); _sem.notify(); return !_leaderIsAlive; }
+    bool waitingElection() { if (_locked) return true; return !_leaderIsAlive; }
     void startElection();
     void receivedElection();
     void receivedAnswer();
@@ -58,6 +58,6 @@ class ElectionManager {
     void _startElection();
 
  private:
-    Semaphore _sem;
+    bool _locked = false;
 
 };

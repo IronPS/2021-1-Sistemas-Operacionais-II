@@ -97,7 +97,7 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
 
             case PacketData::packet_type::ELECTION:
                 ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER));
-                if (_em.asyncIsLeader()) {
+                if (_em.unlockedIsLeader()) {
                     ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR));
 
                 } else {

@@ -59,9 +59,9 @@ void ReplicaManager::start() {
 
         _em.block();
 
-            if (!_em.asyncLeaderIsAlive()) _em.startElection();
+            if (!_em.unlockedLeaderIsAlive()) _em.startElection();
             
-            while (signaling::_continue && !_em.asyncLeaderIsAlive()) {
+            while (signaling::_continue && !_em.unlockedLeaderIsAlive()) {
                 ElectionManager::Action action = _em.action();
                 for (auto con : _connections) {
                     con->electionState(action);
