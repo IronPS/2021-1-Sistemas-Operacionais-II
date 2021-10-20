@@ -106,6 +106,13 @@ int ServerConnectionManager::getConnection() {
     // Socket File Descriptor
     int newSFD = accept(_socketFileDesc, (sockaddr*) &client_addr, &client_addr_size);
 
+    if (newSFD != -1) {
+        struct timeval tv;
+        tv.tv_sec = 1; // 1 seconds
+        tv.tv_usec = 0;
+        setsockopt(newSFD, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    }
+
     return newSFD;
 
 }

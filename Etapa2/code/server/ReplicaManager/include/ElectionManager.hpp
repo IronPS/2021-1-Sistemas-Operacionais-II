@@ -3,28 +3,38 @@
 
 #include <cxxopts/cxxopts.hpp>
 #include <ServerConnectionManager.hpp>
+#include <Semaphore.hpp>
 
 class ElectionManager {
  public:
-    enum State {LEADER, REPLICA, ELECTION, ELECTIONFAILED};
+    enum State {LEADER, REPLICA};
+    enum Action {SendElection, SendCoordinator, WaitAnswer, WaitElection, None};
 
  public:
     ElectionManager(const cxxopts::ParseResult& input);
     ~ElectionManager();
 
  public:
-    bool isLeader() const { return _isLeader; }
-    unsigned short getLeaderID() const { return _leaderID; }
-    State state() const { return _state; }
-    
- public:
-    bool leaderIsAlive() const { return _leaderIsAlive; }
-    void unsetLeaderIsAlive() { _leaderIsAlive = false; }
+    bool isLeader() { _sem.wait(); _sem.notify(); return _isLeader; }
+    unsigned short getLeaderID() { _sem.wait(); _sem.notify(); return _leaderID; }
+    bool asyncIsLeader() { return _isLeader; }
+    unsigned short asyncGetLeaderID() { return _leaderID; }
+    Action action();
+
+    void step();
+    void block() { _sem.wait(); }
+    void unblock() {_sem.notify(); }
 
  public:
-    bool waitingElection() const { return _state == ELECTION; }
+    bool leaderIsAlive() { _sem.wait(); _sem.notify(); return _leaderIsAlive; }
+    bool asyncLeaderIsAlive() { return _leaderIsAlive; }
+    void unsetLeaderIsAlive();
+
+ public:
+    bool waitingElection() { _sem.wait(); _sem.notify(); return !_leaderIsAlive; }
     void startElection();
-    void receivedWait();
+    void receivedElection();
+    void receivedAnswer();
     void receivedCoordinator(unsigned short id);
 
  private:
@@ -38,5 +48,16 @@ class ElectionManager {
 
  private:
     bool _leaderIsAlive = false;
+    Action _action = Action::None;
+
+    unsigned int _waitAnswerTimeout = 3;
+    unsigned int _waitElectionTimeout = 3;
+    time_t _waitAnswerTimer;
+    time_t _waitElectionTimer;
+
+    void _startElection();
+
+ private:
+    Semaphore _sem;
 
 };

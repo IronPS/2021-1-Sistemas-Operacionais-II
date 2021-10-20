@@ -82,7 +82,7 @@ void ReplicaConnection::_connect() {
 
 }
 
-void ReplicaConnection::_receivePacket() {
+void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
 
@@ -95,10 +95,28 @@ void ReplicaConnection::_receivePacket() {
             case PacketData::packet_type::HEARTBEAT:
                 break;
 
+            case PacketData::packet_type::ELECTION:
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER));
+                if (_em.asyncIsLeader()) {
+                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR));
+
+                } else {
+                    _em.receivedElection();
+                }
+                break;
+
+            case PacketData::packet_type::ANSWER:
+                _em.receivedAnswer();
+                break;
+
+            case PacketData::packet_type::COORDINATOR:
+                _em.receivedCoordinator(_otherID);
+                break;
+
             default:
                 ;
         }
-    } else {
+    } else if (!ignoreTimeout) {
         time_t now;
         time(&now);
 
@@ -106,6 +124,7 @@ void ReplicaConnection::_receivePacket() {
             _lostConnection();
 
         }
+
     }
 }
 
@@ -123,6 +142,8 @@ void ReplicaConnection::_sendHeartbeat() {
 }
 
 void ReplicaConnection::_lostConnection() {
+    if (!_connected) return;
+
     _connected = false;
     if (_isServer) {
         ServerConnectionManager::closeConnection(_sfd);
@@ -137,5 +158,27 @@ void ReplicaConnection::_lostConnection() {
 
     if (_otherID == _em.getLeaderID()) {
         _em.unsetLeaderIsAlive();
+    }
+}
+
+void ReplicaConnection::electionState(ElectionManager::Action action) {
+    switch (action) {
+        case ElectionManager::Action::SendElection:
+            if (_thisID > _otherID) {
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ELECTION));
+            }
+            break;
+
+        case ElectionManager::Action::SendCoordinator:
+            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR));
+
+            break;
+        case ElectionManager::Action::WaitAnswer:
+        case ElectionManager::Action::WaitElection:
+            _receivePacket(true);
+            break;
+
+        case ElectionManager::Action::None:
+            break;
     }
 }

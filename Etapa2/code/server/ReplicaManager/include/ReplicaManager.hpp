@@ -22,8 +22,8 @@ class ReplicaManager {
 
     void start();
 
-    bool isLeader() { /*TODO*/ return _id == 0; }
-    bool waitingElection() { return true; }
+    bool isLeader() { return _em.isLeader(); }
+    bool waitingElection() { return _em.waitingElection(); }
     PacketData::packet_t getLeaderInfo();
 
     static server_info_t getNextServerInfo();

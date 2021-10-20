@@ -18,6 +18,7 @@ class ReplicaConnection {
     ~ReplicaConnection();
 
     void loop();
+    void electionState(ElectionManager::Action);
 
     bool connected() const { return _connected; }
 
@@ -41,10 +42,10 @@ class ReplicaConnection {
     void _lostConnection();
 
  private:
-    void _receivePacket();
+    void _receivePacket(bool ignoreTimeout = false);
 
  private:
-    unsigned int _timeout = 20;
+    unsigned int _timeout = 5;
     time_t _lastReceivedHeartbeat;
 
     void _sendHeartbeat();
