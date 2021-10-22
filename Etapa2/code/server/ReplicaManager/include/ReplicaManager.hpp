@@ -11,12 +11,6 @@
 
 class ReplicaManager {
  public:
-    typedef struct s_serverinfo {
-        std::string address;
-        std::string port;
-    } server_info_t;
-
- public:
     ReplicaManager(const cxxopts::ParseResult& input);
     ~ReplicaManager();
 
@@ -26,7 +20,7 @@ class ReplicaManager {
     bool waitingElection() { return _em.waitingElection(); }
     PacketData::packet_t getLeaderInfo();
 
-    static server_info_t getNextServerInfo();
+    static ServerData::server_info_t getNextServerInfo();
 
 
  private:

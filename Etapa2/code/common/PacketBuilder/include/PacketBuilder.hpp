@@ -12,7 +12,7 @@ class PacketBuilder {
     PacketBuilder() = delete;
     ~PacketBuilder() = delete;
 
-    static PacketData::packet_t login(std::string username);
+    static PacketData::packet_t login(std::string username, std::string listenerPort);
     static PacketData::packet_t message(std::string message, std::string sender = "");
     /*
      * If followWho is specified with less than 4 chars or more than 20, packet.type := ERROR

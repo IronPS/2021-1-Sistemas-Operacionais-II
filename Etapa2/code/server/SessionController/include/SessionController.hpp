@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <set>
+#include <map>
 
 #include <PersistenceManager.hpp>
 #include <PersistentUser.hpp>
@@ -15,7 +15,7 @@ class SessionController {
     SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
     ~SessionController();
 
-    bool newSession(int csfd);
+    bool newSession(int csfd, unsigned short listenerPort);
     void closeSession(int csfd);
     size_t getNumSessions();
 
@@ -31,7 +31,7 @@ class SessionController {
     PersistentUser _pUser;
     int _numSessions = 0;
 
-    std::set<int> _sessionSFD; // Socket file descriptors
+    std::map<int, unsigned short> _sessionSFD; // Socket file descriptors and listeners
 
     MessageManager& _mm;
 

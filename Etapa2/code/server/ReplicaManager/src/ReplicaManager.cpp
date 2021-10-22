@@ -81,10 +81,10 @@ PacketData::packet_t ReplicaManager::getLeaderInfo() {
 }
 
 unsigned short ReplicaManager::_sinfoPt = 0;
-ReplicaManager::server_info_t ReplicaManager::getNextServerInfo() {
+ServerData::server_info_t ReplicaManager::getNextServerInfo() {
     std::ifstream serverInfos("servers.data");
     
-    server_info_t sinfo;
+    ServerData::server_info_t sinfo;
 
     bool found = false;
     std::string line;

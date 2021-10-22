@@ -3,14 +3,14 @@
 
 using namespace PacketData;
 
-packet_t PacketBuilder::login(std::string username) {
+packet_t PacketBuilder::login(std::string username, std::string listenerPort) {
     packet_t packet;
 
     packet.type = LOGIN;
     packet.seqn = 0;                // TODO Ignored
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
-    packet.payload[0] = '\0';
+    strcpy(packet.payload, listenerPort.c_str());
     strcpy(packet.extra, username.c_str());
 
     return packet;

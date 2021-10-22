@@ -12,7 +12,7 @@ SessionController::~SessionController() {
 
 }
 
-bool SessionController::newSession(int csfd) {
+bool SessionController::newSession(int csfd, unsigned short listenerPort) {
     bool success = false;
     _sem.wait();
 
@@ -23,7 +23,7 @@ bool SessionController::newSession(int csfd) {
     }
     _numSessions += 1; // Because it will be deleted immediately if failed
 
-    _sessionSFD.insert(csfd);
+    _sessionSFD.insert({csfd, listenerPort});
 
     _sem.notify();
 
@@ -66,7 +66,7 @@ void SessionController::deliverMessages() {
 
     while (packet.type != PacketData::packet_type::NOTHING) {      
         for (auto sfd : _sessionSFD) {
-            ServerConnectionManager::dataSend(sfd, packet);
+            ServerConnectionManager::dataSend(sfd.first, packet);
         }
 
         packet = _mm.getPacket(_pUser.name());

@@ -4,8 +4,10 @@
 ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& input) {
     _server = input["server"].as<std::string>();
     _port = std::to_string(input["port"].as<unsigned short>());
-    
+    _listenerPort = std::to_string(input["listener"].as<unsigned short>());
+
     _openConnection(true, false);
+    _createListener();
 
 }
 
@@ -15,8 +17,8 @@ ClientConnectionManager::ClientConnectionManager(std::string serverAddress, unsi
 }
 
 ClientConnectionManager::~ClientConnectionManager() {
-    if (_socketDesc != -1) {
-        close(_socketDesc);
+    if (_clientSFD != -1) {
+        close(_clientSFD);
     }
 }
 
@@ -25,14 +27,114 @@ bool ClientConnectionManager::openConnection(bool exitOnFail, bool nonBlocking, 
 }
 
 void ClientConnectionManager::closeConnection() {
-    if (_socketDesc != -1) {
-        close(_socketDesc);
-        _socketDesc = -1;
+    if (_clientSFD != -1) {
+        close(_clientSFD);
+        _clientSFD = -1;
     }
 }
 
+void ClientConnectionManager::closeConnection(int& sfd) {
+    if (sfd != -1) {
+        close(sfd);
+        sfd = -1;
+    }
+}
+
+void ClientConnectionManager::_createListener() {
+    struct addrinfo hints, *addrs = NULL;
+    int err = 0;
+    
+    // Get address
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    err = getaddrinfo (
+        NULL,
+        _port.c_str(),
+        &hints,
+        &addrs
+    );
+    
+    if (err != 0) {
+        std::cerr << "Error at getaddrinfo: "
+        << gai_strerror(err)
+        << std::endl;
+        exit(1);
+    }
+
+    for (struct addrinfo* addrptr = addrs; addrptr != NULL; addrptr = addrptr->ai_next) {
+        _listenerSFD = socket(addrptr->ai_family, addrptr->ai_socktype, addrptr->ai_protocol);
+
+        if (_listenerSFD == -1) {
+            err = errno;
+            break;
+        }
+
+        if (bind(_listenerSFD, addrptr->ai_addr, addrptr->ai_addrlen) == 0)
+            break;
+
+        err = errno;
+
+        close(_listenerSFD);
+    }
+
+    if (_listenerSFD == -1) {
+        std::cerr << "Connection error: "
+        << strerror(err)
+        << std::endl;
+        
+        freeaddrinfo(addrs);
+
+        exit(1);
+    }
+
+    if (err != 0) {
+        std::cerr << "Error binding socket "
+        << strerror(err)
+        << std::endl;
+
+        close(_listenerSFD);
+        freeaddrinfo(addrs);
+        
+        exit(1);
+    }
+
+    freeaddrinfo(addrs);
+
+    err = listen(_listenerSFD, _backlog);
+    if (err == -1) {
+        std::cerr << "Error listening to socket "
+        << strerror(errno)
+        << std::endl;
+        close(_listenerSFD);
+
+        exit(1);
+    }
+
+    fcntl(_listenerSFD, F_SETFL, fcntl(_listenerSFD, F_GETFL, 0) | O_NONBLOCK);
+}
+
+int ClientConnectionManager::getConnection() {
+    sockaddr_storage client_addr;
+    socklen_t client_addr_size = sizeof(client_addr);
+
+    // Socket File Descriptor
+    int serverSFD = accept(_listenerSFD, (sockaddr*) &client_addr, &client_addr_size);
+
+    if (serverSFD != -1) {
+        struct timeval tv;
+        tv.tv_sec = 1; // 1 seconds
+        tv.tv_usec = 0;
+        setsockopt(serverSFD, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    }
+
+    return serverSFD;
+}
+
 bool ClientConnectionManager::setAddress(std::string address) {
-    if (_socketDesc != -1) {
+    if (_clientSFD != -1) {
         return false;
     }
 
@@ -42,7 +144,7 @@ bool ClientConnectionManager::setAddress(std::string address) {
 }
 
 bool ClientConnectionManager::setPort(std::string port) {
-    if (_socketDesc != -1) {
+    if (_clientSFD != -1) {
         return false;
     }
 
@@ -52,7 +154,7 @@ bool ClientConnectionManager::setPort(std::string port) {
 }
 
 bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking, bool ignoreErrorMessage) {
-    if (_socketDesc != -1) return false;
+    if (_clientSFD != -1) return false;
 
     struct addrinfo hints, *addrs = NULL;
     int err = 0;
@@ -80,25 +182,25 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking,
     }
 
     for (struct addrinfo* addrpt = addrs; addrpt != NULL; addrpt = addrpt->ai_next) {
-        _socketDesc = socket(addrpt->ai_family, addrpt->ai_socktype, addrpt->ai_protocol);
+        _clientSFD = socket(addrpt->ai_family, addrpt->ai_socktype, addrpt->ai_protocol);
 
-        if (_socketDesc == -1) {
+        if (_clientSFD == -1) {
             err = errno;
             break;
         }
 
-        if (connect(_socketDesc, addrpt->ai_addr, addrpt->ai_addrlen) == 0)
+        if (connect(_clientSFD, addrpt->ai_addr, addrpt->ai_addrlen) == 0)
             break;
 
         err = errno;
 
-        close(_socketDesc);
-        _socketDesc = -1;
+        close(_clientSFD);
+        _clientSFD = -1;
     }
 
     freeaddrinfo(addrs);
 
-    if (_socketDesc == -1) {
+    if (_clientSFD == -1) {
         if (!ignoreErrorMessage) {
             std::cerr << "Connection error (s1): "
             << strerror(err)
@@ -122,9 +224,9 @@ bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking,
     struct timeval tv;
     tv.tv_sec = 1; // 1 seconds
     tv.tv_usec = 0;
-    setsockopt(_socketDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    setsockopt(_clientSFD, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
-    if (nonBlocking) fcntl(_socketDesc, F_SETFL, fcntl(_socketDesc, F_GETFL, 0) | O_NONBLOCK);
+    if (nonBlocking) fcntl(_clientSFD, F_SETFL, fcntl(_clientSFD, F_GETFL, 0) | O_NONBLOCK);
     
     return true;
 }
@@ -143,11 +245,11 @@ void ClientConnectionManager::_print_packet(PacketData::packet_t packet) {
 ssize_t ClientConnectionManager::dataSend(PacketData::packet_t packet) {
     // To go back to communicating with server:
     // Delete this,
-    //std::cout << "Sending to socket " << _socketDesc << "..." << "\n" << packet.payload << std::endl;
+    //std::cout << "Sending to socket " << _clientSFD << "..." << "\n" << packet.payload << std::endl;
 
     // Restore this,
     // std::cout << "Sending packet\n";
-    auto bytes_sent = send(_socketDesc, (void*) &packet, sizeof(PacketData::packet_t), 0);
+    auto bytes_sent = send(_clientSFD, (void*) &packet, sizeof(PacketData::packet_t), 0);
 
     // And delete this, from here:
     // print_packet(packet);
@@ -159,7 +261,19 @@ ssize_t ClientConnectionManager::dataSend(PacketData::packet_t packet) {
 }
 
 ssize_t ClientConnectionManager::dataReceive(PacketData::packet_t& packet) {
-    auto bytes_received = read(_socketDesc, &packet, sizeof(PacketData::packet_t));
+    auto bytes_received = read(_clientSFD, &packet, sizeof(PacketData::packet_t));
+
+    return bytes_received;
+}
+
+ssize_t ClientConnectionManager::dataSend(int sfd, PacketData::packet_t packet) {
+    auto bytes_sent = send(sfd, (void*) &packet, sizeof(PacketData::packet_t), 0);
+
+    return bytes_sent;
+}
+
+ssize_t ClientConnectionManager::dataReceive(int sfd, PacketData::packet_t& packet) {
+    auto bytes_received = read(sfd, (void*) &packet, sizeof(PacketData::packet_t));
 
     return bytes_received;
 }
