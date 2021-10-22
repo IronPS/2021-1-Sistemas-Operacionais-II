@@ -21,6 +21,7 @@ class ReplicaConnection {
     void electionState(ElectionManager::Action);
 
     bool connected() const { return _connected; }
+    unsigned short id() const { return _thisID; }
 
  private:
     unsigned short _thisID;

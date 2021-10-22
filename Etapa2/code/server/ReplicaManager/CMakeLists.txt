@@ -7,6 +7,7 @@ set(SOURCES
     src/ReplicaManager.cpp
     src/ReplicaConnection.cpp
     src/ElectionManager.cpp
+    src/ReplicationManager.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

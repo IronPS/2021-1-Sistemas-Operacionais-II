@@ -2,7 +2,7 @@
 #include <ReplicaManager.hpp>
 
 ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input) 
-: _id(input["id"].as<unsigned short>()), _em(input)
+: _id(input["id"].as<unsigned short>()), _em(input), _rm(input)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _addresses = input["addresses"].as<std::vector<std::string>>();
@@ -71,6 +71,33 @@ void ReplicaManager::start() {
             }
 
         _em.unblock();
+
+        if (_em.leaderIsAlive()) {
+            for (auto conn : _connections) {
+                if (!conn->connected()) {
+                    _rm.setDead(conn->id());
+                } else {
+                    _rm.setAlive(conn->id());
+                }
+            }
+
+            if (_id == _em.getLeaderID()) {
+                // Replication Manager functionality for leader
+                // getSendMessages
+                // send each
+
+            } else {
+                auto con = _connections[_em.getLeaderID()];
+                // Replication Manager functionality for replica
+                // Get confirm messages
+                // send each
+
+                // get commit messages
+                // commit each
+            }
+
+
+        }
         
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -78,7 +105,7 @@ void ReplicaManager::start() {
 }
 
 PacketData::packet_t ReplicaManager::getLeaderInfo() {
-    return PacketBuilder::leaderInfo(_addresses[_leaderID], _cliPorts[_leaderID]);
+    return PacketBuilder::leaderInfo(_addresses[_em.getLeaderID()], _cliPorts[_em.getLeaderID()]);
 }
 
 unsigned short ReplicaManager::_sinfoPt = 0;
@@ -119,3 +146,13 @@ ServerData::server_info_t ReplicaManager::getNextServerInfo() {
     return sinfo;
 }
 
+bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
+    bool success = false;
+
+    uint64_t replicationID = 0;
+    if (_rm.newReplication(commandPacket, replicationID)) {
+        // TODO
+    }
+
+    return success;
+}

@@ -6,6 +6,7 @@
 #include <ReplicaConnection.hpp>
 #include <PacketBuilder.hpp>
 #include <ElectionManager.hpp>
+#include <ReplicationManager.hpp>
 
 #include <assert.h>
 
@@ -22,6 +23,7 @@ class ReplicaManager {
 
     static ServerData::server_info_t getNextServerInfo();
 
+    bool waitCommit(PacketData::packet_t commandPacket);
 
  private:
     unsigned short _id;
@@ -31,10 +33,9 @@ class ReplicaManager {
 
     std::vector<std::shared_ptr<ReplicaConnection>> _connections;
 
-    unsigned short _leaderID = 0;
-
     static unsigned short _sinfoPt;
 
     ElectionManager _em;
+    ReplicationManager _rm;
 
 };

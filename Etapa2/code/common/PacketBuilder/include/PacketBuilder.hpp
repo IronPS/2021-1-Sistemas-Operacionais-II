@@ -27,6 +27,7 @@ class PacketBuilder {
     static PacketData::packet_t serverSignal(unsigned short id, PacketData::packet_type type, uint16_t epoch);
 
     static PacketData::packet_t replicateMessage(std::string userFrom, std::string userTo, std::string message);
+    static PacketData::packet_t deleteMessage(std::string userTo, uint64_t messageID);
     static PacketData::packet_t replicateSession(std::string username, std::string command);
     static PacketData::packet_t replicateUser(std::string username, std::string command);
     

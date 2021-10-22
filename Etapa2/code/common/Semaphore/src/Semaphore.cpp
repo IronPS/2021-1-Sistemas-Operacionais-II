@@ -1,7 +1,13 @@
 #include <Semaphore.hpp>
 
-Semaphore::Semaphore(int count) {
-    _count = count;
+Semaphore::Semaphore(int maxCount, int startCount) {
+    _maxCount = maxCount;
+
+    if (startCount == INT_MIN) {
+        _count = maxCount;
+    } else {
+        _count = startCount;
+    }
 }
 
 Semaphore::~Semaphore() {
@@ -20,6 +26,7 @@ void Semaphore::notify() {
     std::unique_lock<std::mutex> lock(_mutex);
 
     _count++;
+    if (_count > _maxCount) _count = _maxCount;
 
     _condition.notify_one();
 }

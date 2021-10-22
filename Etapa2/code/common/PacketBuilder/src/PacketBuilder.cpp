@@ -159,12 +159,26 @@ packet_t PacketBuilder::replicateMessage(std::string userFrom, std::string userT
     packet_t packet;
 
     packet.type = REPLICATE;
-    packet.rtype = R_MESSAGE;
+    packet.rtype = R_NEWMESSAGE;
     packet.seqn = 0;                        // TODO Ignored
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
     strcmp(packet.payload, message.c_str());
     strcmp(packet.extra, (userFrom + ',' + userTo).c_str());
+
+    return packet;
+}
+
+packet_t PacketBuilder::deleteMessage(std::string userTo, uint64_t messageID) {
+    packet_t packet;
+
+    packet.type = REPLICATE;
+    packet.rtype = R_DELMESSAGE;
+    packet.seqn = 0;                        // TODO Ignored
+    packet.length = 0;
+    packet.timestamp = static_cast<uint64_t>(time(0));
+    strcmp(packet.payload, std::to_string(messageID).c_str());
+    strcmp(packet.extra, userTo.c_str());
 
     return packet;
 }

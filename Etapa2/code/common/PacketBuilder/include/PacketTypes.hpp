@@ -37,7 +37,8 @@ namespace PacketData {
     } packet_type;
 
     typedef enum {
-        R_MESSAGE,
+        R_NEWMESSAGE,
+        R_DELMESSAGE,
         R_SESSION,
         R_USER,
         R_CONFIRM,
