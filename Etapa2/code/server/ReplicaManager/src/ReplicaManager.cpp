@@ -51,7 +51,6 @@ ReplicaManager::~ReplicaManager() {
 }
 
 void ReplicaManager::start() {
-    
     while (signaling::_continue) {
         for (auto con : _connections) {
             con->loop();
@@ -72,6 +71,8 @@ void ReplicaManager::start() {
             }
 
         _em.unblock();
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     }
 }
