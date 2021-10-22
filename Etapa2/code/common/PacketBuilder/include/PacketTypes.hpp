@@ -17,7 +17,7 @@ namespace ServerData {
 
 namespace PacketData {
     const size_t PT_PAYLOAD_SIZE = 129;
-    const size_t PT_EXTRA_SIZE = 21;
+    const size_t PT_EXTRA_SIZE = 42;
 
     typedef enum {
         LOGIN=4762,
@@ -32,12 +32,22 @@ namespace PacketData {
         ELECTION,
         ANSWER,
         COORDINATOR,
+        REPLICATE,
         NOTHING
     } packet_type;
 
+    typedef enum {
+        R_MESSAGE,
+        R_SESSION,
+        R_USER,
+        R_CONFIRM,
+        R_NONE
+    } replication_type;
+
     typedef struct __attribute__((packed))s_packet {
         packet_type type;
-        uint16_t seqn; // Not used
+        replication_type rtype;
+        uint16_t seqn; // Used only for election epoch determination
         uint16_t length; // Not used
         uint64_t timestamp;
         char payload[PT_PAYLOAD_SIZE];

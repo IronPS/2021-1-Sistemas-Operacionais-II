@@ -2,6 +2,7 @@
 #include <thread>
 #include <future>
 #include <chrono>
+#include <algorithm>
 
 #include <parser.hpp>
 #include <Stoppable.hpp>
@@ -16,6 +17,21 @@ static sig_atomic_t is_over = false;
 static sig_atomic_t server_lost = false;
 static sig_atomic_t print_user = true;
 static Semaphore _sem(1);
+
+bool messageExists(uint64_t timestamp) {
+    static const size_t vsize = 200;
+    static std::vector<uint64_t> timestamps(vsize);
+    static size_t nextIdx = 0;
+
+    if(std::find(timestamps.begin(), timestamps.end(), timestamp) != timestamps.end()) { // Already delivered
+        return true;
+    } else { // Prepare for delivery
+        nextIdx = (nextIdx + 1) % vsize;
+        timestamps[nextIdx] = timestamp;
+
+        return false;
+    }
+}
 
 void printUser(std::string username) {
     static Semaphore sem(1);
@@ -258,9 +274,9 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
         if (signaling::_continue) {
+            time(&lastHeartbeat); // Every message counts as a heartbeat
 
             if (packet.type == PacketData::packet_type::HEARTBEAT) {
-                time(&lastHeartbeat);
 
             } else {
                 _sem.wait();
@@ -279,6 +295,8 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
                     closed = true;
                     // No need to recreate user prompt here
                 } else if (packet.type == PacketData::packet_type::MESSAGE) {
+                    if (messageExists(packet.timestamp)) continue;
+
                     _sem.wait();
                         std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
                                     << "@" << packet.extra << ": "  // Creator identification

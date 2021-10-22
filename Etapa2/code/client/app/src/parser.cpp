@@ -8,7 +8,7 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
         ("h,help", "Print usage")
         ("u,user", "Username with which to sign in", cxxopts::value<std::string>())
         ("s,server", "Server address (IPV4)", cxxopts::value<std::string>()->default_value("127.0.0.1"))
-        ("p,port", "Port to be used for client connection", cxxopts::value<unsigned short>()->default_value("42365"))
+        ("p,port", "Server port to connect to", cxxopts::value<unsigned short>()->default_value("51366"))
         ("l,listener", "Port to be used for listening servers", cxxopts::value<unsigned short>()->default_value("42366"))
     ;
     // options.parse_positional({"user", "server", "port"});
