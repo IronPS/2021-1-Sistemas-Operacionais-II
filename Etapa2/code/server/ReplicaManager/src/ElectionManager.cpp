@@ -24,8 +24,9 @@ void ElectionManager::receivedElection() {
     }
 }
 
-void ElectionManager::receivedAnswer() {
+void ElectionManager::receivedAnswer(uint16_t epoch) {
     if (_leaderIsAlive) return;
+    if (epoch < _epoch) return;
 
     _state = State::REPLICA;
     _action = Action::WaitElection;
@@ -33,7 +34,9 @@ void ElectionManager::receivedAnswer() {
 
 }
 
-void ElectionManager::receivedCoordinator(unsigned short id) {
+void ElectionManager::receivedCoordinator(unsigned short id, uint16_t epoch) {
+    _epoch = epoch;
+
     if (_state == State::REPLICA) {
         _leaderID = id;
         if (id == _id) {
@@ -61,7 +64,10 @@ void ElectionManager::step() {
     switch(_action) {
         case SendElection:
             _action = Action::WaitAnswer;
-            std::cout << "Waiting answers\n";
+            if (!_printedWaitingElection) {
+                std::cout << "Waiting answers\n";
+                _printedWaitingElection = true;
+            }
             break;
 
         case SendCoordinator:
@@ -85,7 +91,7 @@ ElectionManager::Action ElectionManager::action() {
     time(&now);
 
     if (_action == Action::WaitAnswer && difftime(now, _waitAnswerTimer) > _waitAnswerTimeout) {
-        receivedCoordinator(_id);
+        receivedCoordinator(_id, _epoch);
         _leaderIsAlive = true;
         _action = Action::SendCoordinator;
 
@@ -101,5 +107,9 @@ void ElectionManager::_startElection() {
     _state = State::REPLICA;
     _isLeader = false;
     _action = Action::SendElection;
+    _epoch += 1;
+
+    _printedWaitingElection = false;
+
     time(&_waitAnswerTimer);
 }

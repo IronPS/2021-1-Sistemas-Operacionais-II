@@ -20,6 +20,7 @@ class ElectionManager {
     bool unlockedIsLeader() { return _isLeader; }
     unsigned short unlockedGetLeaderID() { return _leaderID; }
     Action action();
+    uint16_t epoch() { return _epoch; }
 
     void step();
     void block() { _locked = true; }
@@ -34,8 +35,8 @@ class ElectionManager {
     bool waitingElection() { if (_locked) return true; return !_leaderIsAlive; }
     void startElection();
     void receivedElection();
-    void receivedAnswer();
-    void receivedCoordinator(unsigned short id);
+    void receivedAnswer(uint16_t epoch);
+    void receivedCoordinator(unsigned short id, uint16_t epoch);
 
  private:
     unsigned short _id;
@@ -49,11 +50,14 @@ class ElectionManager {
  private:
     bool _leaderIsAlive = false;
     Action _action = Action::None;
+    uint16_t _epoch = 0;
 
     unsigned int _waitAnswerTimeout = 3;
     unsigned int _waitElectionTimeout = 3;
     time_t _waitAnswerTimer;
     time_t _waitElectionTimer;
+
+    bool _printedWaitingElection = false;
 
     void _startElection();
 

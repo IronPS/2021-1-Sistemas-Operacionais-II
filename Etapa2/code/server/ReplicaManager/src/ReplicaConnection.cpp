@@ -104,9 +104,9 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
                 break;
 
             case PacketData::packet_type::ELECTION:
-                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER));
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER, _em.epoch()));
                 if (_em.unlockedIsLeader()) {
-                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR));
+                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
 
                 } else {
                     _em.receivedElection();
@@ -114,12 +114,12 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
                 break;
 
             case PacketData::packet_type::ANSWER:
-                _em.receivedAnswer();
-                std::cout << "Received answer from " << _otherID << "\n";
+                _em.receivedAnswer(packet.seqn);
+                if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
                 break;
 
             case PacketData::packet_type::COORDINATOR:
-                _em.receivedCoordinator(_otherID);
+                _em.receivedCoordinator(_otherID, packet.seqn);
                 break;
 
             default:
@@ -174,12 +174,12 @@ void ReplicaConnection::electionState(ElectionManager::Action action) {
     switch (action) {
         case ElectionManager::Action::SendElection:
             if (_thisID > _otherID) {
-                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ELECTION));
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ELECTION, _em.epoch()));
             }
             break;
 
         case ElectionManager::Action::SendCoordinator:
-            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR));
+            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
 
             break;
         case ElectionManager::Action::WaitAnswer:
