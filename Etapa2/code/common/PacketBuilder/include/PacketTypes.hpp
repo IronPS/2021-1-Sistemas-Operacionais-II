@@ -1,10 +1,19 @@
 
 #pragma once
 
+#include <string>
+
 #include <stddef.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdlib.h>
+
+namespace ServerData {
+    typedef struct s_serverinfo {
+        std::string address;
+        std::string port;
+    } server_info_t;
+};
 
 namespace PacketData {
     const size_t PT_PAYLOAD_SIZE = 129;

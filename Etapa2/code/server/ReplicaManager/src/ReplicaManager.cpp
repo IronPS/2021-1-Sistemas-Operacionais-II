@@ -2,7 +2,7 @@
 #include <ReplicaManager.hpp>
 
 ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input) 
-: _id(input["id"].as<unsigned short>())
+: _id(input["id"].as<unsigned short>()), _em(input)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _addresses = input["addresses"].as<std::vector<std::string>>();
@@ -33,8 +33,12 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
         int myPortPos = _id * (size - 1) + count;
         int otherPortPos = i * (size - 1) + _id + mod;
 
-        _connections.push_back(std::shared_ptr<ReplicaConnection>(new ReplicaConnection(_id, _addresses[_id], auxPorts[myPortPos],
-                          _ids[i], _addresses[i], auxPorts[otherPortPos])));
+        _connections.push_back(std::shared_ptr<ReplicaConnection>(
+            new ReplicaConnection(_em,
+                                  _id, _addresses[_id], auxPorts[myPortPos],
+                                  _ids[i], _addresses[i], auxPorts[otherPortPos])
+            )
+        );
 
         count += 1;
 
@@ -47,15 +51,29 @@ ReplicaManager::~ReplicaManager() {
 }
 
 void ReplicaManager::start() {
-    std::vector<std::thread> threads;
-    for (auto con : _connections) {
-        std::thread t = std::thread(&ReplicaConnection::start, con);
-        threads.push_back(std::move(t));
-    }
+    while (signaling::_continue) {
+        for (auto con : _connections) {
+            con->loop();
+        }
 
-    for (std::thread& th : threads) {
-        if (th.joinable())
-            th.join();
+        _em.block();
+
+            if (!_em.unlockedLeaderIsAlive()) _em.startElection();
+            
+            while (signaling::_continue && !_em.unlockedLeaderIsAlive()) {
+                ElectionManager::Action action = _em.action();
+                for (auto con : _connections) {
+                    con->electionState(action);
+                }
+                _em.step();
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            }
+
+        _em.unblock();
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     }
 }
 
@@ -64,10 +82,10 @@ PacketData::packet_t ReplicaManager::getLeaderInfo() {
 }
 
 unsigned short ReplicaManager::_sinfoPt = 0;
-ReplicaManager::server_info_t ReplicaManager::getNextServerInfo() {
+ServerData::server_info_t ReplicaManager::getNextServerInfo() {
     std::ifstream serverInfos("servers.data");
     
-    server_info_t sinfo;
+    ServerData::server_info_t sinfo;
 
     bool found = false;
     std::string line;

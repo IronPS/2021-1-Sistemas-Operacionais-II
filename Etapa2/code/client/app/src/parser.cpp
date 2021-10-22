@@ -8,7 +8,8 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
         ("h,help", "Print usage")
         ("u,user", "Username with which to sign in", cxxopts::value<std::string>())
         ("s,server", "Server address (IPV4)", cxxopts::value<std::string>()->default_value("127.0.0.1"))
-        ("p,port", "Port to be used", cxxopts::value<unsigned short>()->default_value("51366"))
+        ("p,port", "Port to be used for client connection", cxxopts::value<unsigned short>()->default_value("42365"))
+        ("l,listener", "Port to be used for listening servers", cxxopts::value<unsigned short>()->default_value("42366"))
     ;
     // options.parse_positional({"user", "server", "port"});
     
@@ -108,7 +109,13 @@ cxxopts::ParseResult parse(int argc, char* argv[]) {
 
     // Port can be set only once
     if (result.count("port") > 1) {
-        errorMessage << "Error: Port setting is provided more than once." << std::endl;
+        errorMessage << "Error: Client port setting is provided more than once." << std::endl;
+        error = true;
+    }
+
+    // Port can be set only once
+    if (result.count("listener") > 1) {
+        errorMessage << "Error: Listener port setting is provided more than once." << std::endl;
         error = true;
     }
 

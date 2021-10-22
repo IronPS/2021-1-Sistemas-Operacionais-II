@@ -9,30 +9,26 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
     tv.tv_sec = 0;
     tv.tv_usec = 500 * 1000; // 500 milliseconds
     setsockopt(csfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    
+
     // TODO: all checkings for invalid packet
     ServerConnectionManager::dataReceive(csfd, packet);
     std::string username = std::string(packet.extra);
+
+    if (!rm.isLeader()) {
+        std::cout << "User '" << username << "' tried to log-in\n";
+        ServerConnectionManager::dataSend(csfd, PacketBuilder::error("Error: trying to connect to replica"));
+        ServerConnectionManager::closeConnection(csfd);
+        
+        return;
+    }
     
     bool connected = false;
     if (packet.type == PacketData::LOGIN || packet.type == PacketData::RECONNECT) {
-        SessionController* session = sm.createSession(packet.extra, csfd, connected);
+        SessionController* session = sm.createSession(packet.extra, packet.payload, csfd, connected);
 
         if (connected) {
             if (packet.type == PacketData::LOGIN) {
-                if (!rm.isLeader()) {
-                    if(!reconnect(username, csfd, sm, rm)) return;
-
-                } else {
-                    ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username));
-                }
-                
-                handleUser(username, csfd, session, sm, pm);
-
-            } else if (packet.type == PacketData::RECONNECT) {
-                if (!rm.isLeader()) {
-                    if(!reconnect(username, csfd, sm, rm)) return;
-                }
+                ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username));
 
                 handleUser(username, csfd, session, sm, pm);
             }
@@ -134,31 +130,3 @@ void ClientFunctions::handleUser(std::string username, int csfd, SessionControll
 
 }
 
-bool ClientFunctions::reconnect(std::string username, int csfd, SessionMonitor& sm, ReplicaManager& rm) {
-    PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
-
-    std::cout << "User " << username << " tried to log in\n";
-    do {
-        if (rm.waitingElection()) {
-            packet.type = PacketData::packet_type::WAIT;
-            ServerConnectionManager::dataSend(csfd, packet);
-        } else {
-            ServerConnectionManager::dataSend(csfd, rm.getLeaderInfo());
-            auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
-        }
-
-    } while (packet.type == PacketData::RECONNECT && ( rm.waitingElection() || !rm.isLeader()));
-    
-    if (rm.isLeader()) {
-        ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Successfuly reconnected as: ") + username));
-    
-    } else {
-        sm.closeSession(username, csfd);
-        std::cout << "Closed user " << username << " session\n" << std::endl;
-        
-        return false;
-    }
-
-    return true;
-}

@@ -13,7 +13,7 @@ SessionMonitor::~SessionMonitor() {
     }
 }
 
-SessionController* SessionMonitor::createSession(std::string username, int csfd, bool& success) {
+SessionController* SessionMonitor::createSession(std::string username, std::string listenerPort, int csfd, bool& success) {
     _mapSem.wait();
 
     success = false;
@@ -21,7 +21,7 @@ SessionController* SessionMonitor::createSession(std::string username, int csfd,
         SessionController* sess = new SessionController(username, _pm, _mm);
         _sessions[username] = sess;
     }
-    success = _sessions[username]->newSession(csfd);
+    success = _sessions[username]->newSession(csfd, std::atoi(listenerPort.c_str()));
 
     _mapSem.notify();
 

@@ -6,6 +6,7 @@ project(ServerApp-ReplicaManager VERSION 0.0.0)
 set(SOURCES
     src/ReplicaManager.cpp
     src/ReplicaConnection.cpp
+    src/ElectionManager.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

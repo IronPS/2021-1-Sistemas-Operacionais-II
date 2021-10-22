@@ -1,8 +1,10 @@
 
 #include <ReplicaManager.hpp>
 
-ReplicaConnection::ReplicaConnection(unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
+ReplicaConnection::ReplicaConnection(ElectionManager& em,
+                                     unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                                      unsigned short otherID, std::string otherAddr, unsigned int otherPort)
+: _em(em)
 {
     _thisID = thisID;
     _otherID = otherID;
@@ -45,42 +47,50 @@ ReplicaConnection::~ReplicaConnection() {
 
 }
 
-void ReplicaConnection::start() {
-    while (signaling::_continue) {
-        if (!_connected) {
-            _connect();
-            if (!_connected) std::this_thread::sleep_for(std::chrono::seconds(_timeout/5));
-
-        } else {
-            _receivePacket();
-            _sendHeartbeat();
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
+void ReplicaConnection::loop() {
+    if (!_connected && _first_connection) {
+        _connect();
     }
+
+    if (_connected) {
+        _receivePacket();
+        _sendHeartbeat();
+    }
+
 }
 
 void ReplicaConnection::_connect() {
-    std::cout << "Attempting connection with " << _otherID << std::endl;
+    if (_attemptingConnectionMessage) {
+        std::cout << "Attempting connection with " << _otherID << std::endl;
+        _attemptingConnectionMessage = false;
+    }
+
     if (_isServer) {
         _sfd = _sm->getConnection();
-        if (_sfd != -1) _connected = true;
+        if (_sfd != -1) {
+            _connected = true;
+            _first_connection = false;
+        }
 
     } else {
-        _connected = _cm->openConnection(false, false);
-        if (_connected) _sfd = _cm->getSFD();
+        _connected = _cm->openConnection(false, false, true);
+        if (_connected) {
+            _sfd = _cm->getSFD();
+            _first_connection = false;
+
+        }
 
     }
 
     if (_connected) {
         time(&_lastReceivedHeartbeat);
         std::cout << "Connected to " << _otherID << "\n";
+        _attemptingConnectionMessage = true;
     }
 
 }
 
-void ReplicaConnection::_receivePacket() {
+void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
 
@@ -93,10 +103,29 @@ void ReplicaConnection::_receivePacket() {
             case PacketData::packet_type::HEARTBEAT:
                 break;
 
+            case PacketData::packet_type::ELECTION:
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER, _em.epoch()));
+                if (_em.unlockedIsLeader()) {
+                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
+
+                } else {
+                    _em.receivedElection();
+                }
+                break;
+
+            case PacketData::packet_type::ANSWER:
+                _em.receivedAnswer(packet.seqn);
+                if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
+                break;
+
+            case PacketData::packet_type::COORDINATOR:
+                _em.receivedCoordinator(_otherID, packet.seqn);
+                break;
+
             default:
                 ;
         }
-    } else {
+    } else if (!ignoreTimeout) {
         time_t now;
         time(&now);
 
@@ -104,6 +133,7 @@ void ReplicaConnection::_receivePacket() {
             _lostConnection();
 
         }
+
     }
 }
 
@@ -121,6 +151,8 @@ void ReplicaConnection::_sendHeartbeat() {
 }
 
 void ReplicaConnection::_lostConnection() {
+    if (!_connected) return;
+
     _connected = false;
     if (_isServer) {
         ServerConnectionManager::closeConnection(_sfd);
@@ -133,4 +165,29 @@ void ReplicaConnection::_lostConnection() {
 
     std::cout << "Lost server " << _otherID << std::endl;
 
+    if (_otherID == _em.getLeaderID()) {
+        _em.unsetLeaderIsAlive();
+    }
+}
+
+void ReplicaConnection::electionState(ElectionManager::Action action) {
+    switch (action) {
+        case ElectionManager::Action::SendElection:
+            if (_thisID > _otherID) {
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ELECTION, _em.epoch()));
+            }
+            break;
+
+        case ElectionManager::Action::SendCoordinator:
+            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
+
+            break;
+        case ElectionManager::Action::WaitAnswer:
+        case ElectionManager::Action::WaitElection:
+            _receivePacket(true);
+            break;
+
+        case ElectionManager::Action::None:
+            break;
+    }
 }

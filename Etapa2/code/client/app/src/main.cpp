@@ -9,96 +9,75 @@
 #include <PacketBuilder.hpp>
 #include <PacketTypes.hpp>
 #include <CommandExecutor.hpp>
-#include <ReplicaManager.hpp>
+#include <Semaphore.hpp>
 
-static bool closed = false;
-static bool is_over = false;
-static bool server_lost = false;
+static sig_atomic_t closed = false;
+static sig_atomic_t is_over = false;
+static sig_atomic_t server_lost = false;
+static sig_atomic_t print_user = true;
+static Semaphore _sem(1);
 
-bool tryNextServer(ReplicaManager::server_info_t& sinfo, unsigned int timeout, time_t& timer) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    time_t t_now;
-    time(&t_now);
-    if (difftime(t_now, timer) > timeout) {
-        return false;
-    }
+void printUser(std::string username) {
+    static Semaphore sem(1);
 
-    sinfo = ReplicaManager::getNextServerInfo();
-
-    return true;
+    sem.wait();
+        if (print_user) {
+            std::cout << username << "> " << std::flush;
+            print_user = false;
+        }
+    sem.notify();
 }
 
 bool login(std::string user, ClientConnectionManager& cm) {
     bool timedOut = false;
-    unsigned int timeout = 20;
+    unsigned int timeout = 10;
     time_t timer;
+    time_t t_now;
     bool accepted = false;
 
-    ReplicaManager::server_info_t sinfo;
-
     time(&timer);
-    while (!cm.openConnection(false, false) && signaling::_continue) {
-        timedOut = !tryNextServer(sinfo, timeout, timer);
+    while (signaling::_continue && !cm.openConnection(false, false, true)) {
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
+        }
         if (timedOut) break;
 
-        std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
-        cm.setAddress(sinfo.address);
-        cm.setPort(sinfo.port);
     }
 
-    if (timedOut) return accepted;
+    if (timedOut) {
+        std::cout << "Login connection timed-out" << std::endl;
+        return accepted;
+    }
 
-    PacketData::packet_t loginPacket = PacketBuilder::login(user);
+    PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
 
     cm.dataSend(loginPacket);
 
-    auto bytes_received = cm.dataReceive(packet);
+    ssize_t bytes_received = -1;
+    time(&timer);
+    while (signaling::_continue && ((bytes_received = cm.dataReceive(packet)) == -1 || bytes_received == -1)) {
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
+        }
+        if (timedOut) break;
+    }
+
+    if (timedOut) {
+        std::cout << "Login attempt timed-out" << std::endl;
+        cm.dataSend(PacketBuilder::close());
+        return accepted;
+    }
 
     if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
         accepted = true;
 
-    } else if (packet.type == PacketData::packet_type::RECONNECT) {
-        time(&timer);
-
-        while (signaling::_continue) {
-            cm.closeConnection();
-
-            time_t t_now;
-            time(&t_now);
-            if (difftime(t_now, timer) > timeout) {
-                timedOut = true;
-                break;
-            }
-            
-            cm.setAddress(std::string(packet.extra));
-            cm.setPort(std::string(packet.payload));
-
-            cm.openConnection(true, false);
-            cm.dataSend(loginPacket);
-
-            packet.type = PacketData::packet_type::NOTHING;
-            auto bytes_received = cm.dataReceive(packet);
-
-            if (packet.type == PacketData::packet_type::SUCCESS) {
-                accepted = true;
-                break;
-
-            } else if (packet.type != PacketData::packet_type::WAIT) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                time(&timer);
-            
-            } else if (packet.type != PacketData::packet_type::RECONNECT) {
-                break;
-
-            }
-
-        }
     }
 
-    if (!timedOut) std::cout << packet.payload << std::endl;
-    else std::cout << "Login timed-out" << std::endl;
+    std::cout << packet.payload << std::endl;
 
     return accepted;
 }
@@ -106,75 +85,74 @@ bool login(std::string user, ClientConnectionManager& cm) {
 bool reconnect(std::string user, ClientConnectionManager& cm) {
     bool accepted = false;
     bool timedOut = false;
-    unsigned int timeout = 20;
+    unsigned int timeout = 10;
     time_t timer;
-    PacketData::packet_t loginPacket = PacketBuilder::login(user);
-    loginPacket.type = PacketData::packet_type::RECONNECT;
+    time_t t_now;
+    PacketData::packet_t reconPacket = PacketBuilder::login(user, cm.getListenerPort());
+    reconPacket.type = PacketData::packet_type::RECONNECT;
 
-    ReplicaManager::server_info_t sinfo;
+    ServerData::server_info_t sinfo;
 
+    std::cout << "Waiting for leader" << std::endl;
+
+    // Waiting leader to connect on listening port
+    int serverSFD = -1;
     time(&timer);
-    while (!cm.openConnection(false, false) && signaling::_continue) {
-        timedOut = !tryNextServer(sinfo, timeout, timer);
+    do {
+        serverSFD = cm.getConnection();
+        
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
+        }
         if (timedOut) break;
 
-        std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
-        cm.setAddress(sinfo.address);
-        cm.setPort(sinfo.port);
+    } while (serverSFD == -1 && signaling::_continue);
+
+    if (timedOut) {
+        std::cout << "Reconnection timed-out" << std::endl;
+        return accepted;
     }
 
-    if (timedOut) return accepted;
-
+    // Leader connected
     PacketData::packet_t packet;
     packet.type = PacketData::packet_type::NOTHING;
 
-    cm.dataSend(loginPacket);
-
-    auto bytes_received = cm.dataReceive(packet);
-
-    if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
-        accepted = true;
-
-    } else if (packet.type == PacketData::packet_type::RECONNECT) {
-        time(&timer);
-
-        while (signaling::_continue) {
-            cm.closeConnection();
-
-            time_t t_now;
-            time(&t_now);
-            if (difftime(t_now, timer) > timeout) {
-                timedOut = true;
-                break;
-            }
-            
-            cm.setAddress(std::string(packet.extra));
-            cm.setPort(std::string(packet.payload));
-
-            cm.openConnection(true, false);
-            cm.dataSend(loginPacket);
-
-            packet.type = PacketData::packet_type::NOTHING;
-            auto bytes_received = cm.dataReceive(packet);
-
-            if (packet.type == PacketData::packet_type::SUCCESS) {
-                accepted = true;
-                break;
-
-            } else if (packet.type != PacketData::packet_type::WAIT) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                time(&timer);
-            
-            } else if (packet.type != PacketData::packet_type::RECONNECT) {
-                break;
-
-            }
-
+    ssize_t bytes_received = -1;
+    
+    // Waiting packet reception
+    time(&timer);
+    while(signaling::_continue && ((bytes_received = ClientConnectionManager::dataReceive(serverSFD, packet)) == -1 || bytes_received == -1)) {
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
         }
+        if (timedOut) break;
     }
 
-    if (!timedOut) std::cout << packet.payload << std::endl;
-    else std::cout << "Reconnection timed-out" << std::endl;
+    if (timedOut) {
+        std::cout << "Reconnection timed-out" << std::endl;
+        ClientConnectionManager::dataSend(serverSFD, PacketBuilder::close());
+        return accepted;
+    }
+
+    // Leader sent new info
+    cm.closeConnection();
+    ClientConnectionManager::closeConnection(serverSFD);
+
+    // Connecting to Leader
+    cm.setAddress(std::string(packet.extra));
+    cm.setPort(std::string(packet.payload));
+
+    cm.openConnection(true, false);    
+    
+    cm.dataSend(reconPacket);
+
+    if ((bytes_received > 0) && (bytes_received != -1) && packet.type == PacketData::packet_type::SUCCESS) {
+        accepted = true;
+    }
+
+    std::cout << packet.payload << std::endl;
 
     return accepted;
 }
@@ -196,6 +174,7 @@ bool getline_async(std::string& str, char delim = '\n') {
                 str = lineSoFar;
                 lineSoFar = "";
                 lineRead = true;
+                print_user = true;
             } else {  // otherwise add it to the string so far
                 lineSoFar.append(1, inChar);
             }
@@ -208,22 +187,26 @@ bool getline_async(std::string& str, char delim = '\n') {
 void handleUserInput(std::string user, ClientConnectionManager& cm) {
     bool recognized;
     CommandExecutor ce(user, cm);
-    std::chrono::seconds timeout(3);
 
     std::string command;
-    std::cout << user << "> ";
+    printUser(user);
+
     do {
         if (std::cin) {
             std::cin.clear();
             if (getline_async(command)) {
                 recognized = ce.execute(command);
 
-                if (!recognized && std::cin) {
-                    std::cout << "Command not recognized\n";
+                if (!recognized) {
+                    _sem.wait();
+                    std::cout << "Command '" << command << "' could not be recognized. Available commands: "
+                              << "SEND, FOLLOW, CLOSE"
+                              << std::endl;
+                    _sem.notify();
                 }
-            
+
                 if(!is_over && signaling::_continue) { // Conditional to avoid creating a new prompt when user wants to close
-                    std::cout << user << "> "; 
+                    printUser(user);
                 }
             
             }
@@ -233,6 +216,8 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
             is_over = true;
             closed = true;
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     } while(!is_over && signaling::_continue);
 
@@ -246,48 +231,73 @@ void handleUserInput(std::string user, ClientConnectionManager& cm) {
 void handleServerInput(std::string user, ClientConnectionManager& cm) {
     PacketData::packet_t packet;
 
-    unsigned int hbTimeout = 20;
+    unsigned int hbTimeout = 10;
     time_t lastHeartbeat;
     time(&lastHeartbeat);
     while (!is_over && signaling::_continue) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
         packet.type = PacketData::packet_type::NOTHING;
         cm.dataReceive(packet);
 
         time_t t_now;
         time(&t_now);
         if (difftime(t_now, lastHeartbeat) > hbTimeout) {
-            std::cout << "Server Lost" << std::endl;
-            cm.closeConnection();
             is_over = true;
             server_lost =  true;
+
+            cm.closeConnection();
+
+            _sem.wait();
+                std::cout << "Server Lost" << std::endl;
+            _sem.notify();
+
+            return;
         }
 
         if (packet.type == PacketData::packet_type::NOTHING) continue;
 
         if (signaling::_continue) {
-            std::cout << '\n';  // Get out of user prompt
 
             if (packet.type == PacketData::packet_type::HEARTBEAT) {
                 time(&lastHeartbeat);
 
-            } else if (packet.type == PacketData::packet_type::CLOSE) {
-                std::cout   << "\e[1;31m"   // Color RED for Server
-                            << "SERVER: " 
-                            << "\e[0m"  // Restore normal color
-                            << "Closed by the server" 
-                            << std::endl;
-                is_over = true;
-                closed = true;
-                // No need to recreate user prompt here
-            } else if (packet.type == PacketData::packet_type::MESSAGE) {
-                std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
-                            << "@" << packet.extra << ": "  // Creator identification
-                            << "\e[0m"  // Restore normal color
-                            << packet.payload << "\n" << std::flush;
-                std::cout << user << "> " << std::flush;    // Recreate user prompt
             } else {
-                std::cout << packet.payload << std::endl;
-                std::cout << user << "> " << std::flush;    // Recreate user prompt
+                _sem.wait();
+                    std::cout << '\n';  // Get out of user prompt
+                _sem.notify();
+
+                if (packet.type == PacketData::packet_type::CLOSE) {
+                    _sem.wait();
+                        std::cout   << "\e[1;31m"   // Color RED for Server
+                                    << "SERVER: " 
+                                    << "\e[0m"  // Restore normal color
+                                    << "Closed by the server" 
+                                    << std::endl;
+                    _sem.notify();
+                    is_over = true;
+                    closed = true;
+                    // No need to recreate user prompt here
+                } else if (packet.type == PacketData::packet_type::MESSAGE) {
+                    _sem.wait();
+                        std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
+                                    << "@" << packet.extra << ": "  // Creator identification
+                                    << "\e[0m"  // Restore normal color
+                                    << packet.payload << std::endl;
+                        
+                        print_user = true;
+                    _sem.notify();
+                    printUser(user);
+
+                } else {
+                    _sem.wait();
+                        std::cout << packet.payload << std::endl;
+                        
+                        print_user = true;
+                    _sem.notify();
+                    printUser(user);
+                }
+            
             }
 
         }
@@ -333,12 +343,6 @@ int main(int argc, char* argv[]) {
     if (logged) {
         while (!closed && is_over && server_lost) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
-            ReplicaManager::server_info_t sinfo = ReplicaManager::getNextServerInfo();
-
-            std::cout << "Attempting server (" << sinfo.address << ", " << sinfo.port << ")" << std::endl;
-
-            cm.setAddress(sinfo.address);
-            cm.setPort(sinfo.port);
 
             is_over = false;
             server_lost = false;

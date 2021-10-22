@@ -12,7 +12,7 @@ class SessionMonitor {
     SessionMonitor(PersistenceManager& pm);
     ~SessionMonitor();
 
-    SessionController* createSession(std::string username, int csfd, bool& success);
+    SessionController* createSession(std::string username, std::string listenerPort, int csfd, bool& success);
     void closeSession(std::string username, int csfd);
 
     void getControl();

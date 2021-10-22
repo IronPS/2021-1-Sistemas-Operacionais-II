@@ -75,10 +75,6 @@ bool CommandExecutor::execute(std::string fullCommand) {
         _sendClose();
         recognized = true;
 
-    } else {
-        std::cout << "Command '" << command << "' could not be recognized. Available commands: "
-                << "SEND, FOLLOW, CLOSE"
-                << std::endl;
     }
 
     return recognized;
