@@ -16,9 +16,9 @@ int main(int argc, char* argv[]) {
     auto results = parse(argc, argv);
 
     ReplicaManager rm(results);
-    PersistenceManager pm(std::to_string(results["port"].as<unsigned short>()) + "-db.db", rm);
+    PersistenceManager pm(std::to_string(results["port"].as<unsigned short>()) + "-db.db");
     ServerConnectionManager cm(results);
-    SessionMonitor sm(pm, rm);
+    SessionMonitor sm(pm);
     
     std::vector<std::thread> threads;
     int csfd = -1;

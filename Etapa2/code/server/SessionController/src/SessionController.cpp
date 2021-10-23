@@ -1,8 +1,8 @@
 
 #include <SessionController.hpp>
 
-SessionController::SessionController(std::string username, PersistenceManager& pm, MessageManager& mm, ReplicaManager& rm)
-: _pUser(pm.loadUser(username), pm, rm), _mm(mm), _sem(1)
+SessionController::SessionController(std::string username, PersistenceManager& pm, MessageManager& mm)
+: _pUser(pm.loadUser(username), pm), _mm(mm), _sem(1)
 {
     _username = _pUser.name();
 

@@ -19,6 +19,5 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC Common-PacketBuilder
     PUBLIC ServerApp-ProducerConsumerBuffer
     PUBLIC ServerApp-User
-    PUBLIC ServerApp-ReplicaManager
 )
 

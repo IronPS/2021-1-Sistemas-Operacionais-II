@@ -9,11 +9,10 @@
 #include <ServerConnectionManager.hpp>
 #include <PacketBuilder.hpp>
 #include <MessageManager.hpp>
-#include <ReplicaManager.hpp>
 
 class SessionController {
  public:
-    SessionController(std::string username, PersistenceManager& pm, MessageManager& mm, ReplicaManager& rm);
+    SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
     ~SessionController();
 
     bool isValid() const { return _success; }

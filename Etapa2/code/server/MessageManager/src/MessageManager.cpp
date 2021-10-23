@@ -1,7 +1,7 @@
 
 #include<MessageManager.hpp>
 
-MessageManager::MessageManager(ReplicaManager& rm) : _sem(1), _rm(rm) {
+MessageManager::MessageManager() : _sem(1){
 
 }
 

@@ -5,12 +5,11 @@
 
 #include <User.hpp>
 #include <PersistenceManager.hpp>
-#include <ReplicaManager.hpp>
 
 class PersistentUser : public User {
  public:
-    PersistentUser(std::string username, unsigned int ID, PersistenceManager& pm, ReplicaManager& rm);
-    PersistentUser(User user, PersistenceManager& pm, ReplicaManager& rm);
+    PersistentUser(std::string username, unsigned int ID, PersistenceManager& pm);
+    PersistentUser(User user, PersistenceManager& pm);
     ~PersistentUser();
 
     void addFollower(std::string follower);
@@ -19,7 +18,6 @@ class PersistentUser : public User {
 
  private:
     PersistenceManager& _pm;
-    ReplicaManager& _rm;
     Semaphore _sem;
 };
 

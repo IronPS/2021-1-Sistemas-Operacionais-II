@@ -1,5 +1,5 @@
 
-#include <ReplicaManager.hpp>
+#include <ReplicaConnection.hpp>
 
 ReplicaConnection::ReplicaConnection(ElectionManager& em, ReplicationManager& rm,
                                      unsigned short thisID, std::string thisAddr, unsigned int thisPort, 

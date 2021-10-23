@@ -13,11 +13,10 @@
 #include <PacketBuilder.hpp>
 #include <Semaphore.hpp>
 #include <ProducerConsumerBuffer.hpp>
-#include <ReplicaManager.hpp>
 
 class MessageManager {
  public:
-    MessageManager(ReplicaManager& rm);
+    MessageManager();
     ~MessageManager();
 
     void processIncomingMessage(User& creator, const std::string text, const uint64_t timestamp);
@@ -26,8 +25,5 @@ class MessageManager {
  private:
     std::map<std::string, ProducerConsumerBuffer*> _pendingMessages;
     Semaphore _sem;
-
- private:
-    ReplicaManager& _rm;
 
 };
