@@ -22,6 +22,7 @@ class ReplicaManager {
 
     void start();
 
+
     bool isLeader() { return _em.isLeader(); }
     bool waitingElection() { return _em.waitingElection(); }
     PacketData::packet_t getLeaderInfo();
@@ -30,6 +31,8 @@ class ReplicaManager {
 
     bool waitCommit(PacketData::packet_t commandPacket);
     void commit(PacketData::packet_t commandPacket);
+
+    void client(int csfd);
 
  private:
     unsigned short _id;

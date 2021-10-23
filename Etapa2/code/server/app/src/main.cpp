@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
 
         if (csfd != -1) {
             t = std::thread(ClientFunctions::newConnection, csfd, std::ref(sm), std::ref(pm), std::ref(rm));
+            // t = std::thread(&ReplicaManager::client, &rm, csfd);
             threads.push_back(std::move(t));
         }
 

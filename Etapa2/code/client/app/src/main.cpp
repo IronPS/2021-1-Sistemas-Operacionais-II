@@ -262,22 +262,24 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
         packet.type = PacketData::PacketType::NOTHING;
         cm.dataReceive(packet);
 
-        time_t t_now;
-        time(&t_now);
-        if (difftime(t_now, lastHeartbeat) > hbTimeout) {
-            is_over = true;
-            server_lost =  true;
+        if (packet.type == PacketData::PacketType::NOTHING) {
+            time_t t_now;
+            time(&t_now);
+            if (difftime(t_now, lastHeartbeat) > hbTimeout) {
+                is_over = true;
+                server_lost =  true;
 
-            cm.closeConnection();
+                cm.closeConnection();
 
-            _sem.wait();
-                std::cout << "Server Lost" << std::endl;
-            _sem.notify();
+                _sem.wait();
+                    std::cout << "Server Lost" << std::endl;
+                _sem.notify();
 
-            return;
+                return;
+            }
+
+            continue;
         }
-
-        if (packet.type == PacketData::PacketType::NOTHING) continue;
 
         if (signaling::_continue) {
             time(&lastHeartbeat); // Every message counts as a heartbeat

@@ -230,3 +230,7 @@ void ReplicaManager::commit(PacketData::packet_t packet) {
 
     }
 }
+
+void ReplicaManager::client(int csfd) {
+    // TODO copy ClientFunctions here
+}
