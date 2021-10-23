@@ -1,8 +1,8 @@
 
 #include <ReplicaManager.hpp>
 
-ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input) 
-: _id(input["id"].as<unsigned short>()), _em(input), _rm(input)
+ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input, PersistenceManager& pm, SessionMonitor& sm) 
+: _id(input["id"].as<unsigned short>()), _em(input), _rm(input), _pm(pm), _sm(sm)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _addresses = input["addresses"].as<std::vector<std::string>>();

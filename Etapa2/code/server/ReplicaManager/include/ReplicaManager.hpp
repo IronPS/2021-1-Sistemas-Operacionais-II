@@ -10,11 +10,14 @@
 #include <Flag.hpp>
 #include <RWSemaphore.hpp>
 
+#include <PersistenceManager.hpp>
+#include <SessionMonitor.hpp>
+
 #include <assert.h>
 
 class ReplicaManager {
  public:
-    ReplicaManager(const cxxopts::ParseResult& input);
+    ReplicaManager(const cxxopts::ParseResult& input, PersistenceManager&, SessionMonitor&);
     ~ReplicaManager();
 
     void start();
@@ -42,4 +45,7 @@ class ReplicaManager {
     ReplicationManager _rm;
     RWSemaphore _rmSem;
 
+ private:
+    PersistenceManager& _pm;
+    SessionMonitor& _sm;
 };

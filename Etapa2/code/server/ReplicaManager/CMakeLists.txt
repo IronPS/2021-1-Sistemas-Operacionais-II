@@ -23,5 +23,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC Common-Stoppable
     PUBLIC Common-CriticalSessionControl
     PUBLIC Common-PacketBuilder
+    PUBLIC ServerApp-PersistenceManager
+    PUBLIC ServerApp-SessionMonitor
     PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )
