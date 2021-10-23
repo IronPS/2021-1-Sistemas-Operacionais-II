@@ -49,10 +49,21 @@ bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& i
 }
 
 void ReplicationManager::receivedConfirm(unsigned short otherID, uint64_t packetID) {
-    // TODO
-    // Check if exists
-    // If SENT vector[otherID] = true
-    //  If std::all_of(vec.begin(), vec.end(), [](bool v) { return v; }) then COMMIT
+    auto it = _messages.find(packetID);
+
+    if (it != _messages.end()) { // Found
+        assert(it->second.sentTo.size() == _ids.size());
+        if (it->second.state == ReplicationState::SENT) {
+            it->second.sentTo[otherID] = true;
+
+            if (_allMarked(it->second)) {
+                it->second.state = ReplicationState::COMMIT;
+            }
+        }
+
+    } else {
+        // Not found
+    }
 }
 
 bool ReplicationManager::getNextToSend(ReplicationData& res, bool firstIt) {
@@ -79,15 +90,8 @@ void ReplicationManager::updateSend(ReplicationData& data, unsigned short sentTo
     assert(data.sentTo.size() == _ids.size());
 
     data.sentTo[sentTo] = success;
-    std::vector<bool> resVec(data.sentTo.size());
-    std::transform(
-        data.sentTo.begin(), data.sentTo.end(), 
-        _dead.begin(), 
-        resVec.begin(), 
-        std::logical_or<bool>()
-    );
 
-    if (std::all_of(resVec.begin(), resVec.end(), [](bool v) { return v; })) {
+    if (_allMarked(data)) {
         data.state = ReplicationState::SENT;
         std::fill(data.sentTo.begin(), data.sentTo.end(), false);
     }
@@ -174,4 +178,17 @@ bool ReplicationManager::getNextToCommit(ReplicationData& res, bool firstIt) {
 
 void ReplicationManager::checkTimeouts() {
     // TODO
+}
+
+bool ReplicationManager::_allMarked(ReplicationData& data) {
+    std::vector<bool> resVec(data.sentTo.size());
+    std::transform(
+        data.sentTo.begin(), data.sentTo.end(), 
+        _dead.begin(), 
+        resVec.begin(), 
+        std::logical_or<bool>()
+    );
+
+    return std::all_of(resVec.begin(), resVec.end(), [](bool v) { return v; });
+
 }

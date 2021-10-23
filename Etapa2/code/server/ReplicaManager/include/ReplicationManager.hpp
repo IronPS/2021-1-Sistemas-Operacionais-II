@@ -61,9 +61,13 @@ class ReplicationManager {
     std::vector<bool> _dead;
 
  private:
-    std::map<uint64_t, struct s_replication_data> _messages;
+    std::map<uint64_t, ReplicationData> _messages;
     unsigned short _maxFailures = 3;
+    unsigned short _packetTimeToLive = 8;
 
     Semaphore _sem;
+
+ private:
+    bool _allMarked(ReplicationData& rep);
 
 };
