@@ -106,7 +106,11 @@ void ReplicationManager::receivedToReplicate(PacketData::packet_t packet) {
     auto res = _messages.insert({(uint64_t) toReplicate.packet.timestamp, toReplicate});
     if (!res.second) {
         if (res.first->second.state != ReplicationState::CONFIRM) {
-            res.first->second.state = ReplicationState::CONFIRM;
+            if (res.first->second.state == ReplicationState::COMMITTED) {
+                res.first->second.state = ReplicationState::CONFIRMDUP;
+            } else {
+                res.first->second.state = ReplicationState::CONFIRM;
+            }
             res.first->second.receivedAt = toReplicate.receivedAt;
         }
     }
@@ -122,7 +126,7 @@ bool ReplicationManager::getNextToConfirm(ReplicationData& res, bool firstIt) {
     }
 
     for (; it != _messages.end(); it++) {
-        if (it->second.state == ReplicationState::CONFIRM) {
+        if (it->second.state == ReplicationState::CONFIRM || it->second.state == ReplicationState::CONFIRMDUP) {
             res = it->second;
             hasNext = true;
             it++;
@@ -135,8 +139,15 @@ bool ReplicationManager::getNextToConfirm(ReplicationData& res, bool firstIt) {
 }
 
 void ReplicationManager::updateConfirm(ReplicationData& data, bool success) {
-    if (success) 
-        data.state = ReplicationState::COMMIT;
+    if (success) {
+        if (data.state == ReplicationState::CONFIRMDUP) {
+            data.state = ReplicationState::COMMITTED;
+
+        } else {
+            data.state = ReplicationState::COMMIT;
+
+        }
+    }
 }
 
 bool ReplicationManager::getNextToCommit(ReplicationData& res, bool firstIt) {

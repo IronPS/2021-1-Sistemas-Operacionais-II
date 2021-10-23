@@ -16,6 +16,7 @@ class ReplicationManager {
         SEND,       // Used by the leader to send a message for replication
         SENT,       // Used by the leader to wait confirmations
         CONFIRM,    // Used by the passive replicas to confirm replication
+        CONFIRMDUP,
         COMMIT,     // Used by all replicas to indicate state propagation
         COMMITTED,   // Used by all replicas
         CANCELED
