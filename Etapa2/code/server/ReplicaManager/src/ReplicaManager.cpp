@@ -52,9 +52,13 @@ ReplicaManager::~ReplicaManager() {
 
 void ReplicaManager::start() {
     while (signaling::_continue) {
+        
+        _rmSem.beginWrite();
         for (auto con : _connections) {
             con->loop();
         }
+        _rmSem.endWrite();
+
 
         _em.block();
 
@@ -72,7 +76,6 @@ void ReplicaManager::start() {
 
         _em.unblock();
 
-
         if (_em.leaderIsAlive()) {
             for (auto conn : _connections) {
                 if (!conn->connected()) {
@@ -82,8 +85,9 @@ void ReplicaManager::start() {
                 }
 
             }
-
+            
             _rmSem.beginWrite();
+
             if (_id == _em.getLeaderID()) {
                 // Replication Manager functionality for leader
                 bool firstIt = true;

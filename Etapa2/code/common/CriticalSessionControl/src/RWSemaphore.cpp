@@ -28,7 +28,7 @@ void RWSemaphore::endRead() {
         _nReaders--;
         if (_nReaders == 0)
             _condition.notify_all();
-    _rMutex.unlock();
+    _gMutex.unlock();
 }
 
 
@@ -36,11 +36,10 @@ void RWSemaphore::beginWrite() {
     std::unique_lock<std::mutex> gLock(_gMutex);
 
     _gMutex.lock();
+        _writerActive = true;
         while (_nReaders > 0) {
             _condition.wait(gLock);
         }
-        _writerActive = true;
-
     _gMutex.unlock();
 }
 

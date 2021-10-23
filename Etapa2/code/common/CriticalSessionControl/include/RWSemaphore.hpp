@@ -14,7 +14,6 @@ class RWSemaphore {
     void endWrite();
 
  private:
-    std::mutex _rMutex;
     std::mutex _gMutex;
     std::condition_variable _condition;
 

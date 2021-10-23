@@ -6,6 +6,7 @@
 
 #include <cxxopts/cxxopts.hpp>
 #include <PacketBuilder.hpp>
+#include <Semaphore.hpp>
 
 #include <assert.h>
 

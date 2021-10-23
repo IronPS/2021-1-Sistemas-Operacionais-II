@@ -13,7 +13,12 @@ ReplicationManager::~ReplicationManager() {
 }
 
 void ReplicationManager::processReceivedPacket(PacketData::packet_t packet, bool isLeader) {
+    static Semaphore sem(1);
     // TODO
+    
+    sem.wait();
+
+    sem.notify();
 }
 
 bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& id) {
