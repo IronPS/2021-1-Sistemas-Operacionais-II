@@ -21,6 +21,7 @@ class ReplicaConnection {
     bool connected() const { return _connected; }
     unsigned short thisID() const { return _thisID; }
     unsigned short otherID() const { return _otherID; }
+
  public:
     void loop();
     
@@ -54,7 +55,7 @@ class ReplicaConnection {
     void _receivePacket(bool ignoreTimeout = false);
 
  private:
-    unsigned int _timeout = 5;
+    unsigned int _timeout = 8;
     time_t _lastReceivedHeartbeat;
 
     void _sendHeartbeat();

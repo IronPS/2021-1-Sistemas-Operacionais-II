@@ -25,6 +25,8 @@ void Semaphore::wait() {
 }
 
 void Semaphore::notify() {
+    std::unique_lock<std::mutex> lock(_mutex);
+
     _count++;
     if (_count > _maxCount) _count = _maxCount;
 

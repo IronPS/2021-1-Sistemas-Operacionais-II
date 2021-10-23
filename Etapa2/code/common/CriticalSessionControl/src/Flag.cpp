@@ -18,10 +18,14 @@ void Flag::wait() {
 }
 
 void Flag::set() {
+    std::unique_lock<std::mutex> lock(_mutex);
+
     _flag = true;
 }
 
 void Flag::unset() {
+    std::unique_lock<std::mutex> lock(_mutex);
+
     _flag = false;
 
     _condition.notify_all();

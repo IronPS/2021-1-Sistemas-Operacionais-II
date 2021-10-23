@@ -51,12 +51,11 @@ ReplicaManager::~ReplicaManager() {
 }
 
 void ReplicaManager::start() {
-    while (signaling::_continue) {
-        
+    while (signaling::_continue) {  
         _rmSem.beginWrite();
-        for (auto con : _connections) {
-            con->loop();
-        }
+            for (auto con : _connections) {
+                con->loop();
+            }
         _rmSem.endWrite();
 
 
@@ -85,49 +84,49 @@ void ReplicaManager::start() {
                 }
 
             }
-            
+
             _rmSem.beginWrite();
 
-            if (_id == _em.getLeaderID()) {
-                // Replication Manager functionality for leader
-                bool firstIt = true;
-                ReplicationManager::ReplicationData rep;
+                if (_id == _em.getLeaderID()) {
+                    // Replication Manager functionality for leader
+                    bool firstIt = true;
+                    ReplicationManager::ReplicationData rep;
 
-                while (_rm.getNextToSend(rep, firstIt)) {
-                    firstIt = false;
-                    for (auto conn : _connections) {
+                    while (_rm.getNextToSend(rep, firstIt)) {
+                        firstIt = false;
+                        for (auto conn : _connections) {
+                            bool res = conn->sendReplication(rep.packet);
+                            _rm.updateSend(rep, conn->otherID(), res);
+                        }
+
+                    }
+
+
+                } else {
+                    // Replication Manager functionality for replica
+                    bool firstIt = true;
+                    ReplicationManager::ReplicationData rep;
+                    auto conn = _connections[_em.getLeaderID()];
+
+                    while (_rm.getNextToConfirm(rep, firstIt)) {
                         bool res = conn->sendReplication(rep.packet);
-                        _rm.updateSend(rep, conn->otherID(), res);
+                        _rm.updateConfirm(rep, res);
+                    }
+
+                    // Only passive replicas commit through here
+                    // Leader commits through the user thread
+                    firstIt = true;
+                    while (_rm.getNextToCommit(rep, firstIt)) {
+                        // TODO
                     }
 
                 }
 
-
-            } else {
-                // Replication Manager functionality for replica
-                bool firstIt = true;
-                ReplicationManager::ReplicationData rep;
-                auto conn = _connections[_em.getLeaderID()];
-
-                while (_rm.getNextToConfirm(rep, firstIt)) {
-                    bool res = conn->sendReplication(rep.packet);
-                    _rm.updateConfirm(rep, res);
-                }
-
-                // Only passive replicas commit through here
-                // Leader commits through the user thread
-                firstIt = true;
-                while (_rm.getNextToCommit(rep, firstIt)) {
-                    // TODO
-                }
-
-            }
             _rmSem.endWrite();
-
 
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
     }
 }

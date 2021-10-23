@@ -2,7 +2,7 @@
 #include <ReplicationManager.hpp>
 
 ReplicationManager::ReplicationManager(const cxxopts::ParseResult& input)
-: _id(input["id"].as<unsigned short>())
+: _id(input["id"].as<unsigned short>()), _sem(1)
 {
     _ids = input["ids"].as<std::vector<unsigned short>>();
     _dead = std::vector<bool>(_ids.size(), false);
@@ -13,15 +13,17 @@ ReplicationManager::~ReplicationManager() {
 }
 
 void ReplicationManager::processReceivedPacket(PacketData::packet_t packet, bool isLeader) {
-    static Semaphore sem(1);
     // TODO
     
-    sem.wait();
+    _sem.wait();
 
-    sem.notify();
+    _sem.notify();
 }
 
 bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& id) {
+    _sem.wait();
+
+    bool success = false;
     ReplicationData toReplicate = {
         packet,
         static_cast<uint64_t>(time(0)),
@@ -34,12 +36,15 @@ bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& i
 
     auto res = _messages.insert({(uint64_t) toReplicate.packet.timestamp, toReplicate});
     if (!res.second) {
-        return false;
+        // Exists
     } else {
         id = res.first->second.packet.timestamp;
+        success = true;
     }
 
-    return true;
+    _sem.notify();
+
+    return success;
 
 }
 

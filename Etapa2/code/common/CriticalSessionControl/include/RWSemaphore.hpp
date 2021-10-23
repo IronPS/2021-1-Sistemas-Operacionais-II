@@ -17,6 +17,6 @@ class RWSemaphore {
     std::mutex _gMutex;
     std::condition_variable _condition;
 
-    int _nReaders;
+    int _nReaders = 0;
     bool _writerActive = false;
 };

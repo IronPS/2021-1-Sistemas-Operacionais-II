@@ -63,4 +63,6 @@ class ReplicationManager {
     std::map<uint64_t, struct s_replication_data> _messages;
     unsigned short _maxFailures = 3;
 
+    Semaphore _sem;
+
 };

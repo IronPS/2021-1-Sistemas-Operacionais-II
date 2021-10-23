@@ -26,6 +26,8 @@ ReplicaConnection::ReplicaConnection(ElectionManager& em, ReplicationManager& rm
         assert(_cm);
     }
 
+    time(&_lastSentHeartbeat);
+
 }
 
 ReplicaConnection::~ReplicaConnection() {
@@ -101,9 +103,11 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
 
         switch(packet.type) {
             case PacketData::packet_type::HEARTBEAT:
+                // std::cout << "Received HB from " << _otherID << "\n";
                 break;
 
             case PacketData::packet_type::ELECTION:
+                // std::cout << "Received ELECTION from " << _otherID << "\n";
                 ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER, _em.epoch()));
                 if (_em.unlockedIsLeader()) {
                     ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
@@ -115,14 +119,16 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
 
             case PacketData::packet_type::ANSWER:
                 _em.receivedAnswer(packet.seqn);
-                if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
+                // if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
                 break;
 
             case PacketData::packet_type::COORDINATOR:
+                // std::cout << "Received COORDINATOR from " << _otherID << "\n";
                 _em.receivedCoordinator(_otherID, packet.seqn);
                 break;
             
             case PacketData::packet_type::REPLICATE:
+                // std::cout << "Received REPLICATE from " << _otherID << "\n";
                 _rm.processReceivedPacket(packet, _em.unlockedIsLeader());
                 break;
 
@@ -146,6 +152,7 @@ void ReplicaConnection::_sendHeartbeat() {
     time(&now);
 
     if (difftime(now, _lastSentHeartbeat) > _heartbeatInterval) {
+        // std::cout << "Sending HB to " << _otherID << std::endl;
         auto bytesSent = ServerConnectionManager::dataSend(_sfd, PacketBuilder::heartbeat(_thisID));
 
         if (bytesSent > 0 && bytesSent != -1) {
