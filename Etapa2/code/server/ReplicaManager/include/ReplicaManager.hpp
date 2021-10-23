@@ -7,6 +7,8 @@
 #include <PacketBuilder.hpp>
 #include <ElectionManager.hpp>
 #include <ReplicationManager.hpp>
+#include <Flag.hpp>
+#include <RWSemaphore.hpp>
 
 #include <assert.h>
 
@@ -37,5 +39,6 @@ class ReplicaManager {
 
     ElectionManager _em;
     ReplicationManager _rm;
+    RWSemaphore _rmSem;
 
 };

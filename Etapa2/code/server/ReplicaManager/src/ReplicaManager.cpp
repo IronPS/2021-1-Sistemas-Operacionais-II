@@ -34,7 +34,7 @@ ReplicaManager::ReplicaManager(const cxxopts::ParseResult& input)
         int otherPortPos = i * (size - 1) + _id + mod;
 
         _connections.push_back(std::shared_ptr<ReplicaConnection>(
-            new ReplicaConnection(_em,
+            new ReplicaConnection(_em, _rm,
                                   _id, _addresses[_id], auxPorts[myPortPos],
                                   _ids[i], _addresses[i], auxPorts[otherPortPos])
             )
@@ -72,34 +72,58 @@ void ReplicaManager::start() {
 
         _em.unblock();
 
+
         if (_em.leaderIsAlive()) {
             for (auto conn : _connections) {
                 if (!conn->connected()) {
-                    _rm.setDead(conn->id());
+                    _rm.setDead(conn->otherID());
                 } else {
-                    _rm.setAlive(conn->id());
+                    _rm.setAlive(conn->otherID());
                 }
+
             }
 
+            _rmSem.beginWrite();
             if (_id == _em.getLeaderID()) {
                 // Replication Manager functionality for leader
-                // getSendMessages
-                // send each
+                bool firstIt = true;
+                ReplicationManager::ReplicationData rep;
+
+                while (_rm.getNextToSend(rep, firstIt)) {
+                    firstIt = false;
+                    for (auto conn : _connections) {
+                        bool res = conn->sendReplication(rep.packet);
+                        _rm.updateSend(rep, conn->otherID(), res);
+                    }
+
+                }
+
 
             } else {
-                auto con = _connections[_em.getLeaderID()];
                 // Replication Manager functionality for replica
-                // Get confirm messages
-                // send each
+                bool firstIt = true;
+                ReplicationManager::ReplicationData rep;
+                auto conn = _connections[_em.getLeaderID()];
 
-                // get commit messages
-                // commit each
+                while (_rm.getNextToConfirm(rep, firstIt)) {
+                    bool res = conn->sendReplication(rep.packet);
+                    _rm.updateConfirm(rep, res);
+                }
+
+                // Only passive replicas commit through here
+                // Leader commits through the user thread
+                firstIt = true;
+                while (_rm.getNextToCommit(rep, firstIt)) {
+                    // TODO
+                }
+
             }
+            _rmSem.endWrite();
 
 
         }
-        
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     }
 }
@@ -150,9 +174,12 @@ bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
     bool success = false;
 
     uint64_t replicationID = 0;
+
+    _rmSem.beginRead();
     if (_rm.newReplication(commandPacket, replicationID)) {
-        // TODO
+                // TODO
     }
+    _rmSem.endRead();
 
     return success;
 }

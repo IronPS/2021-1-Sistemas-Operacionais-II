@@ -1,10 +1,10 @@
 
 #include <ReplicaManager.hpp>
 
-ReplicaConnection::ReplicaConnection(ElectionManager& em,
+ReplicaConnection::ReplicaConnection(ElectionManager& em, ReplicationManager& rm,
                                      unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                                      unsigned short otherID, std::string otherAddr, unsigned int otherPort)
-: _em(em)
+: _em(em), _rm(rm)
 {
     _thisID = thisID;
     _otherID = otherID;
@@ -121,6 +121,10 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
             case PacketData::packet_type::COORDINATOR:
                 _em.receivedCoordinator(_otherID, packet.seqn);
                 break;
+            
+            case PacketData::packet_type::REPLICATE:
+                _rm.processReceivedPacket(packet, _em.unlockedIsLeader());
+                break;
 
             default:
                 ;
@@ -190,4 +194,18 @@ void ReplicaConnection::electionState(ElectionManager::Action action) {
         case ElectionManager::Action::None:
             break;
     }
+}
+
+bool ReplicaConnection::sendReplication(PacketData::packet_t packet) {
+    bool success = false;
+
+    if (!_connected) return success;
+
+    auto bytesSent = ServerConnectionManager::dataSend(_sfd, packet);
+
+    if (bytesSent > 0 && bytesSent != -1) {
+        success = true;
+    }
+
+    return success;
 }

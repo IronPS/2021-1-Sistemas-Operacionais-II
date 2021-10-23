@@ -36,14 +36,18 @@ class ReplicationManager {
     void setAlive(unsigned short id) { _dead[id] = false; }
 
  public:
+    void processReceivedPacket(PacketData::packet_t packet, bool isLeader);
+
+ public:
     bool newReplication(PacketData::packet_t, uint64_t& id);
     void receivedConfirm(unsigned short otherID, uint64_t packetID);
     bool getNextToSend(ReplicationData& res, bool firstIt);
-    void updateSend(ReplicationData& data, unsigned short sentTo);
+    void updateSend(ReplicationData& data, unsigned short sentTo, bool success);
 
  public:
     void receivedToReplicate(PacketData::packet_t);
     bool getNextToConfirm(ReplicationData& res, bool firstIt);
+    void updateConfirm(ReplicationData& data, bool success);
 
  public:
     bool getNextToCommit(ReplicationData& res, bool firstIt);

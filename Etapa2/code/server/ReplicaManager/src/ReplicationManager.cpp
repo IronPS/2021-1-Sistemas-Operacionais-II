@@ -12,6 +12,10 @@ ReplicationManager::~ReplicationManager() {
 
 }
 
+void ReplicationManager::processReceivedPacket(PacketData::packet_t packet, bool isLeader) {
+    // TODO
+}
+
 bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& id) {
     ReplicationData toReplicate = {
         packet,
@@ -61,10 +65,10 @@ bool ReplicationManager::getNextToSend(ReplicationData& res, bool firstIt) {
     return hasNext;
 }
 
-void ReplicationManager::updateSend(ReplicationData& data, unsigned short sentTo) {
+void ReplicationManager::updateSend(ReplicationData& data, unsigned short sentTo, bool success) {
     assert(data.sentTo.size() == _ids.size());
 
-    data.sentTo[sentTo] = true;
+    data.sentTo[sentTo] = success;
     std::vector<bool> resVec(data.sentTo.size());
     std::transform(
         data.sentTo.begin(), data.sentTo.end(), 
@@ -109,7 +113,6 @@ bool ReplicationManager::getNextToConfirm(ReplicationData& res, bool firstIt) {
 
     for (; it != _messages.end(); it++) {
         if (it->second.state == ReplicationState::CONFIRM) {
-            it->second.state = ReplicationState::COMMIT;
             res = it->second;
             hasNext = true;
             it++;
@@ -119,6 +122,11 @@ bool ReplicationManager::getNextToConfirm(ReplicationData& res, bool firstIt) {
 
     return hasNext;
 
+}
+
+void ReplicationManager::updateConfirm(ReplicationData& data, bool success) {
+    if (success) 
+        data.state = ReplicationState::COMMIT;
 }
 
 bool ReplicationManager::getNextToCommit(ReplicationData& res, bool firstIt) {
