@@ -17,6 +17,7 @@ target_include_directories( ${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC ServerApp-User
     PUBLIC ServerApp-PersistenceManager
+    PUBLIC ServerApp-ReplicaManager
     PUBLIC Common-CriticalSessionControl
 )
 

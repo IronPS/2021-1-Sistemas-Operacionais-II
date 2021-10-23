@@ -24,7 +24,7 @@ class PacketBuilder {
 
     static PacketData::packet_t heartbeat(unsigned short id);
     static PacketData::packet_t leaderInfo(std::string address, unsigned short clientPort);
-    static PacketData::packet_t serverSignal(unsigned short id, PacketData::packet_type type, uint16_t epoch);
+    static PacketData::packet_t serverSignal(unsigned short id, PacketData::PacketType type, uint16_t epoch);
 
     static PacketData::packet_t replicateMessage(std::string userFrom, std::string userTo, std::string message);
     static PacketData::packet_t deleteMessage(std::string userTo, uint64_t messageID);

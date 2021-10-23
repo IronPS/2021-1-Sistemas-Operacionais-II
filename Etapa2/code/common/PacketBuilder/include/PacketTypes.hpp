@@ -34,7 +34,7 @@ namespace PacketData {
         COORDINATOR,
         REPLICATE,
         NOTHING
-    } packet_type;
+    } PacketType;
 
     typedef enum {
         R_NEWMESSAGE,
@@ -43,11 +43,11 @@ namespace PacketData {
         R_USER,
         R_CONFIRM,
         R_NONE
-    } replication_type;
+    } ReplicationType;
 
     typedef struct __attribute__((packed))s_packet {
-        packet_type type;
-        replication_type rtype;
+        PacketType type;
+        ReplicationType rtype;
         uint16_t seqn; // Used only for election epoch determination
         uint16_t length; // Not used
         uint64_t timestamp;

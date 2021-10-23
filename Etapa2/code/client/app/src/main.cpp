@@ -16,6 +16,7 @@ static sig_atomic_t closed = false;
 static sig_atomic_t is_over = false;
 static sig_atomic_t server_lost = false;
 static sig_atomic_t print_user = true;
+static unsigned int timeout = 15;
 static Semaphore _sem(1);
 
 bool messageExists(uint64_t timestamp) {
@@ -46,7 +47,6 @@ void printUser(std::string username) {
 
 bool login(std::string user, ClientConnectionManager& cm) {
     bool timedOut = false;
-    unsigned int timeout = 10;
     time_t timer;
     time_t t_now;
     bool accepted = false;
@@ -66,9 +66,11 @@ bool login(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
+    if (!signaling::_continue) return false;
+
     PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
     cm.dataSend(loginPacket);
 
@@ -88,7 +90,7 @@ bool login(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
-    if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
+    if (bytes_received > 0 && packet.type == PacketData::PacketType::SUCCESS) {
         accepted = true;
 
     }
@@ -101,11 +103,10 @@ bool login(std::string user, ClientConnectionManager& cm) {
 bool reconnect(std::string user, ClientConnectionManager& cm) {
     bool accepted = false;
     bool timedOut = false;
-    unsigned int timeout = 10;
     time_t timer;
     time_t t_now;
     PacketData::packet_t reconPacket = PacketBuilder::login(user, cm.getListenerPort());
-    reconPacket.type = PacketData::packet_type::RECONNECT;
+    reconPacket.type = PacketData::PacketType::RECONNECT;
 
     ServerData::server_info_t sinfo;
 
@@ -132,7 +133,7 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
 
     // Leader connected
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
     ssize_t bytes_received = -1;
     
@@ -152,6 +153,11 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
+    if (!signaling::_continue) {
+        cm.dataSend(PacketBuilder::close());
+        return false;
+    }
+
     // Leader sent new info
     cm.closeConnection();
     ClientConnectionManager::closeConnection(serverSFD);
@@ -164,7 +170,7 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     
     cm.dataSend(reconPacket);
 
-    if ((bytes_received > 0) && (bytes_received != -1) && packet.type == PacketData::packet_type::SUCCESS) {
+    if ((bytes_received > 0) && (bytes_received != -1) && packet.type == PacketData::PacketType::SUCCESS) {
         accepted = true;
     }
 
@@ -203,7 +209,7 @@ bool getline_async(std::string& str, char delim = '\n') {
 void handleUserInput(std::string user, ClientConnectionManager& cm) {
     bool recognized;
     CommandExecutor ce(user, cm);
-
+    
     std::string command;
     printUser(user);
 
@@ -253,7 +259,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
     while (!is_over && signaling::_continue) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        packet.type = PacketData::packet_type::NOTHING;
+        packet.type = PacketData::PacketType::NOTHING;
         cm.dataReceive(packet);
 
         time_t t_now;
@@ -271,19 +277,19 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
             return;
         }
 
-        if (packet.type == PacketData::packet_type::NOTHING) continue;
+        if (packet.type == PacketData::PacketType::NOTHING) continue;
 
         if (signaling::_continue) {
             time(&lastHeartbeat); // Every message counts as a heartbeat
 
-            if (packet.type == PacketData::packet_type::HEARTBEAT) {
+            if (packet.type == PacketData::PacketType::HEARTBEAT) {
 
             } else {
                 _sem.wait();
                     std::cout << '\n';  // Get out of user prompt
                 _sem.notify();
 
-                if (packet.type == PacketData::packet_type::CLOSE) {
+                if (packet.type == PacketData::PacketType::CLOSE) {
                     _sem.wait();
                         std::cout   << "\e[1;31m"   // Color RED for Server
                                     << "SERVER: " 
@@ -294,7 +300,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
                     is_over = true;
                     closed = true;
                     // No need to recreate user prompt here
-                } else if (packet.type == PacketData::packet_type::MESSAGE) {
+                } else if (packet.type == PacketData::PacketType::MESSAGE) {
                     if (messageExists(packet.timestamp)) continue;
 
                     _sem.wait();

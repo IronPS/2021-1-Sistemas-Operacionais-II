@@ -6,10 +6,11 @@
 #include <SessionController.hpp>
 #include <Semaphore.hpp>
 #include <MessageManager.hpp>
+#include <ReplicaManager.hpp>
 
 class SessionMonitor {
  public:
-    SessionMonitor(PersistenceManager& pm);
+    SessionMonitor(PersistenceManager& pm, ReplicaManager& rm);
     ~SessionMonitor();
 
     SessionController* createSession(std::string username, std::string listenerPort, int csfd, bool& success);
@@ -23,6 +24,7 @@ class SessionMonitor {
 
  private:
     PersistenceManager& _pm;
+    ReplicaManager& _rm;
     MessageManager _mm;
     std::map<std::string, SessionController*> _sessions;
 

@@ -1,8 +1,8 @@
 
 #include <PersistenceManager.hpp>
 
-PersistenceManager::PersistenceManager(std::string databasePath)
-: _sem(1)
+PersistenceManager::PersistenceManager(std::string databasePath, ReplicaManager& rm)
+: _sem(1), _rm(rm)
 {
     std::ifstream infile(databasePath);
     if(infile.good()) { // File exists
@@ -69,7 +69,14 @@ User PersistenceManager::loadUser(std::string username, bool create) {
     _setFollowers(user, followers);
 
     if (mustCreate && create) {
-        _privateSaveUser(user);
+        if (!_rm.waitCommit(PacketBuilder::replicateUser(username, "CREATE"))) {
+            std::cerr << "Failed to replicate user\n";
+            user = User("", 0);
+        } else {
+            _privateSaveUser(user);
+
+        }
+
     } else if (mustCreate && !create) {
         user = User("", 0);
     }

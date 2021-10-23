@@ -141,7 +141,7 @@ PacketData::packet_t PacketBuilder::leaderInfo(std::string address, unsigned sho
     return packet;
 }
 
-PacketData::packet_t PacketBuilder::serverSignal(unsigned short id, PacketData::packet_type type, uint16_t epoch) {
+PacketData::packet_t PacketBuilder::serverSignal(unsigned short id, PacketData::PacketType type, uint16_t epoch) {
     packet_t packet;
 
     packet.type = type;

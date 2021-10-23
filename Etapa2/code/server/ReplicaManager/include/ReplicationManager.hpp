@@ -24,7 +24,7 @@ class ReplicationManager {
 
     typedef struct s_replication_data {
         PacketData::packet_t packet;
-        uint64_t receivedAt;
+        time_t receivedAt;
         ReplicationState state;
         std::vector<bool> sentTo;
         unsigned short numFailures;
@@ -38,21 +38,24 @@ class ReplicationManager {
     void setAlive(unsigned short id) { _dead[id] = false; }
 
  public:
-    void processReceivedPacket(PacketData::packet_t packet, bool isLeader);
+    ReplicationManager::ReplicationState getMessageState(uint64_t id);
+
+ public:
+    void processReceivedPacket(PacketData::packet_t packet, unsigned short otherID);
 
  public:
     bool newReplication(PacketData::packet_t, uint64_t& id);
     void receivedConfirm(unsigned short otherID, uint64_t packetID);
-    bool getNextToSend(ReplicationData& res, bool firstIt);
+    bool getNextToSend(ReplicationData** res, bool firstIt);
     void updateSend(ReplicationData& data, unsigned short sentTo, bool success);
 
  public:
     void receivedToReplicate(PacketData::packet_t);
-    bool getNextToConfirm(ReplicationData& res, bool firstIt);
+    bool getNextToConfirm(ReplicationData** res, bool firstIt);
     void updateConfirm(ReplicationData& data, bool success);
 
  public:
-    bool getNextToCommit(ReplicationData& res, bool firstIt);
+    bool getNextToCommit(ReplicationData** res, bool firstIt);
     void checkTimeouts();
 
  private:

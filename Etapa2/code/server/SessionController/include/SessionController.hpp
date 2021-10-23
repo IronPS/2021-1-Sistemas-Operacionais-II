@@ -9,11 +9,14 @@
 #include <ServerConnectionManager.hpp>
 #include <PacketBuilder.hpp>
 #include <MessageManager.hpp>
+#include <ReplicaManager.hpp>
 
 class SessionController {
  public:
-    SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
+    SessionController(std::string username, PersistenceManager& pm, MessageManager& mm, ReplicaManager& rm);
     ~SessionController();
+
+    bool isValid() const { return _success; }
 
     bool newSession(int csfd, unsigned short listenerPort);
     void closeSession(int csfd, bool sendClose = true);
@@ -38,5 +41,6 @@ class SessionController {
     bool _success = false;
 
     Semaphore _sem;
+
 
 };

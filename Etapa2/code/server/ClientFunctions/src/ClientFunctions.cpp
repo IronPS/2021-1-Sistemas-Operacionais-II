@@ -41,8 +41,15 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
         }
 
         // Must not close user session on exit
-        sm.closeSession(username, csfd, false);
-        std::cout << "Closed user " << username << " session socket without \"CLOSE\"\n" << std::endl;
+        if (csfd != -1) {
+            if (session != nullptr) {
+                sm.closeSession(username, csfd, false);
+                std::cout << "Closed user " << username << " session socket without \"CLOSE\"\n" << std::endl;
+            } else {
+                ServerConnectionManager::dataSend(csfd, PacketBuilder::error("Error: Failed to connect -- Replication error"));
+                ServerConnectionManager::closeConnection(csfd);
+            }
+        }
 
     } else {
         // TODO invalid command received error
@@ -51,9 +58,9 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
     
 }
 
-void ClientFunctions::handleUser(std::string username, int csfd, SessionController* session, SessionMonitor& sm, PersistenceManager& pm) {
+void ClientFunctions::handleUser(std::string username, int& csfd, SessionController* session, SessionMonitor& sm, PersistenceManager& pm) {
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
     // Time in seconds for heartbeat repetition
     unsigned int hbTime = 5;
@@ -69,12 +76,13 @@ void ClientFunctions::handleUser(std::string username, int csfd, SessionControll
                 
         auto bytes_received = ServerConnectionManager::dataReceive(csfd, packet);
         if (bytes_received > 0) {
-            if (packet.type == PacketData::packet_type::CLOSE) {
+            if (packet.type == PacketData::PacketType::CLOSE) {
                 is_over = true;
                 sm.closeSession(username, csfd);
+                csfd = -1;
                 std::cout << "Closed user " << username << " session\n" << std::endl;
 
-            } else if (packet.type == PacketData::packet_type::FOLLOW) {
+            } else if (packet.type == PacketData::PacketType::FOLLOW) {
                 std::cout << "Received FOLLOW from user '" 
                 << username << "' to user '"
                 << packet.extra 
@@ -106,7 +114,7 @@ void ClientFunctions::handleUser(std::string username, int csfd, SessionControll
                 }
 
 
-            } else if (packet.type == PacketData::packet_type::MESSAGE) {
+            } else if (packet.type == PacketData::PacketType::MESSAGE) {
                 std::string messageContent = packet.payload;
 
                 std::cout << "Received MESSAGE from user '"

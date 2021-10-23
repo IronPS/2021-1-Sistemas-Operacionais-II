@@ -1,10 +1,12 @@
 
 #include <SessionController.hpp>
 
-SessionController::SessionController(std::string username, PersistenceManager& pm, MessageManager& mm)
-: _pUser(pm.loadUser(username), pm), _mm(mm), _sem(1)
+SessionController::SessionController(std::string username, PersistenceManager& pm, MessageManager& mm, ReplicaManager& rm)
+: _pUser(pm.loadUser(username), pm, rm), _mm(mm), _sem(1)
 {
-    _username = username;
+    _username = _pUser.name();
+
+    _success = _username == username;
 
 }
 
@@ -64,7 +66,7 @@ void SessionController::deliverMessages() {
     _sem.wait();
     PacketData::packet_t packet = _mm.getPacket(_pUser.name());
 
-    while (packet.type != PacketData::packet_type::NOTHING) {      
+    while (packet.type != PacketData::PacketType::NOTHING) {      
         for (auto sfd : _sessionSFD) {
             ServerConnectionManager::dataSend(sfd.first, packet);
         }

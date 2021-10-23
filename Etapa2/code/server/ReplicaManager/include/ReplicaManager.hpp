@@ -26,6 +26,7 @@ class ReplicaManager {
     static ServerData::server_info_t getNextServerInfo();
 
     bool waitCommit(PacketData::packet_t commandPacket);
+    void commit(PacketData::packet_t commandPacket);
 
  private:
     unsigned short _id;

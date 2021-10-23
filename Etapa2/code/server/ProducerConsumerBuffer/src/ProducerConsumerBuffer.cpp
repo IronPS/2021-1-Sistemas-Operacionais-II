@@ -43,7 +43,7 @@ void ProducerConsumerBuffer::enqueue(message_t message) {
 
 message_t ProducerConsumerBuffer::dequeue() {
     message_t message;
-    message.packet.type = PacketData::packet_type::NOTHING;
+    message.packet.type = PacketData::PacketType::NOTHING;
 
     int produced = 0;
     _producedSem.wait();

@@ -3,6 +3,8 @@
 
 #include <User.hpp>
 #include <Semaphore.hpp>
+#include <ReplicaManager.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,7 +12,7 @@
 
 class PersistenceManager {
  public:
-    PersistenceManager(std::string databasePath);
+    PersistenceManager(std::string databasePath, ReplicaManager& rm);
     ~PersistenceManager();
 
     User loadUser(std::string username, bool create = true);
@@ -22,5 +24,8 @@ class PersistenceManager {
 
     void _privateSaveUser(User& user);
     void _setFollowers(User& user, std::set<std::string> followers);
+
+ private:
+    ReplicaManager& _rm;
 
 };

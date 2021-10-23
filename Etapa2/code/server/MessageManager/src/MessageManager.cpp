@@ -1,7 +1,7 @@
 
 #include<MessageManager.hpp>
 
-MessageManager::MessageManager() : _sem(1) {
+MessageManager::MessageManager(ReplicaManager& rm) : _sem(1), _rm(rm) {
 
 }
 
@@ -42,7 +42,7 @@ void MessageManager::processIncomingMessage(User& creator, const std::string tex
 
 PacketData::packet_t MessageManager::getPacket(std::string toUser) {
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
     ProducerConsumerBuffer* buffer = nullptr;
 

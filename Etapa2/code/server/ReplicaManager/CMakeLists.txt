@@ -20,7 +20,7 @@ target_include_directories( ${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC ServerApp-ConnectionManager
     PUBLIC ClientApp-ConnectionManager
-    PRIVATE Common-Stoppable
+    PUBLIC Common-Stoppable
     PUBLIC Common-CriticalSessionControl
     PUBLIC Common-PacketBuilder
     PRIVATE ${CMAKE_THREAD_LIBS_INIT}
