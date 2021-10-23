@@ -13,7 +13,7 @@ class SessionMonitor {
     ~SessionMonitor();
 
     SessionController* createSession(std::string username, std::string listenerPort, int csfd, bool& success);
-    void closeSession(std::string username, int csfd);
+    void closeSession(std::string username, int csfd, bool sendClose = true);
 
     void getControl();
     void freeControl();

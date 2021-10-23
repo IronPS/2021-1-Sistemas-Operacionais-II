@@ -41,8 +41,8 @@ void ClientFunctions::newConnection(int csfd, SessionMonitor& sm, PersistenceMan
         }
 
         // Must not close user session on exit
-        // sm.closeSession(username, csfd);
-        // std::cout << "Closed user " << username << " session\n" << std::endl;
+        sm.closeSession(username, csfd, false);
+        std::cout << "Closed user " << username << " session socket without \"CLOSE\"\n" << std::endl;
 
     } else {
         // TODO invalid command received error

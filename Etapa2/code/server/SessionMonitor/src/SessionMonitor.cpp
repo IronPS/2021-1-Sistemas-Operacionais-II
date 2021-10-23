@@ -28,10 +28,10 @@ SessionController* SessionMonitor::createSession(std::string username, std::stri
     return _sessions[username];
 }
 
-void SessionMonitor::closeSession(std::string username, int csfd) {
+void SessionMonitor::closeSession(std::string username, int csfd, bool sendClose) {
     _mapSem.wait();
 
-    _sessions[username]->closeSession(csfd);
+    _sessions[username]->closeSession(csfd, sendClose);
 
     if (_sessions[username]->getNumSessions() == 0) {
         delete _sessions[username];

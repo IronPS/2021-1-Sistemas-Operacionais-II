@@ -16,7 +16,7 @@ class SessionController {
     ~SessionController();
 
     bool newSession(int csfd, unsigned short listenerPort);
-    void closeSession(int csfd);
+    void closeSession(int csfd, bool sendClose = true);
     size_t getNumSessions();
 
     void addFollower(std::string follower);

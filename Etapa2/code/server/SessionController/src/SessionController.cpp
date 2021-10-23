@@ -30,13 +30,13 @@ bool SessionController::newSession(int csfd, unsigned short listenerPort) {
     return success;
 }
 
-void SessionController::closeSession(int csfd) {
+void SessionController::closeSession(int csfd, bool sendClose) {
     _sem.wait();
     _numSessions -= 1;
 
     if (_numSessions < 0) _numSessions = 0;
 
-    auto bytes_sent = ServerConnectionManager::dataSend(csfd, PacketBuilder::close());
+    if (sendClose) ServerConnectionManager::dataSend(csfd, PacketBuilder::close());
 
     ServerConnectionManager::closeConnection(csfd);
 
