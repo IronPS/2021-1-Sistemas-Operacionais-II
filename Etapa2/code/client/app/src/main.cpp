@@ -181,7 +181,7 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     // Connecting to Leader
     cm.setAddress(std::string(packet.extra));
     cm.setPort(std::string(packet.payload));
-
+    std::cout << packet.extra << " "<< packet.payload << "\n";
     std::cout << "Preparing reconnection..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
@@ -325,7 +325,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
                 cm.closeConnection();
 
                 _sem.wait();
-                    std::cout << "Server Lost" << std::endl;
+                    std::cout << "\nServer Lost" << std::endl;
                     print_user = true;
                 _sem.notify();
 

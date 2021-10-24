@@ -97,6 +97,7 @@ void ReplicaManager::start() {
             _rm.clear();
 
             _rmSem.beginWrite();
+                if (_em.isLeader()) _rm.checkSent();
 
                 if (_id == _em.getLeaderID()) {
                     // Replication Manager functionality for leader
@@ -120,6 +121,7 @@ void ReplicaManager::start() {
                     auto conn = _connections[_em.getLeaderID()];
 
                     while (_rm.getNextToConfirm(&rep, firstIt)) {
+                        firstIt = false;
                         bool res = conn->sendReplication(PacketBuilder::confirmReplication(_em.epoch(), rep->packet.timestamp));
                         _rm.updateConfirm(*rep, res);
                     }
@@ -128,6 +130,7 @@ void ReplicaManager::start() {
                     // Leader commits through the user thread
                     firstIt = true;
                     while (_rm.getNextToCommit(&rep, firstIt)) {
+                        firstIt = false;
                         commit(rep->packet);
                     }
 
@@ -201,7 +204,8 @@ bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
             _rmSem.beginRead();
                 state = _rm.getMessageState(replicationID);
             _rmSem.endRead();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
         } while (
             signaling::_continue
@@ -236,14 +240,15 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
         case PacketData::ReplicationType::R_NEWMESSAGE:
             session = _sm.getSession(packet.extra);
             if (session != nullptr) {
-                session->sendMessage(packet.payload);
+                std::cout << "Creating message '" << packet.timestamp << "'\n";
+                session->sendMessage(packet.payload, packet.timestamp);
             }
 
             break;
           
         case PacketData::ReplicationType::R_DELMESSAGE:
-            std::cout << packet.payload << "\n";
-            _sm.markDeliveredMessage(packet.extra, std::stoi(packet.payload));
+            std::cout << "Marking message '" << packet.payload << "' as delivered\n";
+            _sm.markDeliveredMessage(packet.extra, std::stol(packet.payload));
             break;
          
         case PacketData::ReplicationType::R_SESSION:
@@ -260,7 +265,7 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
 
                 if (strPos2 == std::string::npos) return;
 
-                csfd = std::stoi(tmpStr.substr(strPos1+1, strPos2));
+                csfd = std::stol(tmpStr.substr(strPos1+1, strPos2));
                 listenerPort = substr.substr(strPos2+1);
             
                 _sm.createSession(packet.extra, listenerPort, csfd, success);
@@ -272,7 +277,7 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
                 }
 
             } else if (cmdStr == "CLOSE") {
-                csfd = std::stoi(substr);
+                csfd = std::stol(substr);
                 _sm.closeSession(packet.extra, csfd, false, false);
                 
                 std::cout << "Closed replicated session of user " << packet.extra << "\n";
@@ -316,21 +321,22 @@ void ReplicaManager::_updateClients() {
     time_t t_now;
     bool timedOut = false;
     double timeout = 0.15; // 150 milliseconds
-
+    
     _sm.getControl();
 
         auto sessions = _sm.getSessions();
 
         for (auto it = sessions->begin(); it != sessions->end(); /* Nothing */) {
             for (auto sess : it->second->getSessions()) {
-                PacketData::packet_t packet = PacketBuilder::replicateSession(it->second->username(), "CLOSE," + std::to_string(sess.first));
-                packet.seqn = _em.epoch();
 
                 bool res = false;
                 time(&timer);
                 while (!res) {
+                    res = true;
+                    PacketData::packet_t packet = PacketBuilder::replicateSession(it->second->username(), "CLOSE," + std::to_string(sess.first));
+                    packet.seqn = _em.epoch();
                     for (auto conn : _connections) {
-                        res |= conn->sendReplication(packet);
+                        res &= conn->sendReplication(packet, true);
                     }
 
                     time(&t_now);
@@ -338,6 +344,9 @@ void ReplicaManager::_updateClients() {
                         timedOut = true;
                     }
                     if (timedOut) break;
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
                 }
 
                 ClientConnectionManager cm("127.0.0.1", sess.second);

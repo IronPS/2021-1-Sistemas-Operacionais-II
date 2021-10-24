@@ -24,7 +24,7 @@ class SessionController {
     size_t getNumSessions();
 
     void addFollower(std::string follower);
-    void sendMessage(std::string message);
+    void sendMessage(std::string message, uint64_t messageID);
 
     void deliverMessages(ReplicaManager&);
 

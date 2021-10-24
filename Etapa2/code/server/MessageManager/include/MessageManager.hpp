@@ -19,7 +19,7 @@ class MessageManager {
     MessageManager();
     ~MessageManager();
 
-    void processIncomingMessage(User& creator, const std::string text, const uint64_t timestamp);
+    void processIncomingMessage(User& creator, const std::string text, const uint64_t messageID);
     PacketData::packet_t getPacket(std::string toUser, bool peek);
 
     void markDelivered(std::string toUser, uint64_t messageID);

@@ -29,7 +29,7 @@ class ReplicaConnection {
     void electionState(ElectionManager::Action);
 
  public:
-    bool sendReplication(PacketData::packet_t packet);
+    bool sendReplication(PacketData::packet_t packet, bool ignoreConnected = false);
 
  private:
     unsigned short _thisID;

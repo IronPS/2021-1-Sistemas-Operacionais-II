@@ -49,7 +49,7 @@ bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& i
     bool success = false;
     ReplicationData toReplicate = {
         packet,
-        time(0),
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
         ReplicationState::SEND,
         std::vector<bool>(_ids.size(), 0),
         0
@@ -86,6 +86,14 @@ void ReplicationManager::receivedConfirm(unsigned short otherID, uint64_t packet
 
     } else {
         // Not found
+    }
+}
+
+void ReplicationManager::checkSent() {
+    for (auto it = _messages.begin(); it != _messages.end(); it++) {
+        if (it->second.state == ReplicationState::SENT) {
+            it->second.state = ReplicationState::COMMITTED;
+        }
     }
 }
 
@@ -128,7 +136,7 @@ void ReplicationManager::receivedToReplicate(PacketData::packet_t packet) {
 
     ReplicationData toReplicate = {
         packet,
-        time(0),
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
         ReplicationState::CONFIRM,
         std::vector<bool>(),
         0
@@ -206,21 +214,21 @@ bool ReplicationManager::getNextToCommit(ReplicationData** res, bool firstIt) {
 }
 
 void ReplicationManager::checkTimeouts() {
-    time_t t_now;
-    time(&t_now);
+    uint64_t t_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
     for (auto it = _messages.begin(); it != _messages.end(); /* Nothing */) {
         bool remove = false;
 
         switch (it->second.state) {
             case SEND:
             case SENT:
-                if (difftime(t_now, it->second.receivedAt) > _packetTimeToLive) {
+                if ((t_now - it->second.receivedAt) > _packetTimeToLive) {
                     it->second.numFailures += 1;
                     if (it->second.numFailures > _maxFailures) {
                         it->second.state = ReplicationState::CANCELED;
 
                     } else {
-                        it->second.receivedAt = time(0);
+                        it->second.receivedAt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         it->second.state = ReplicationState::SEND;
 
                     }
@@ -235,7 +243,7 @@ void ReplicationManager::checkTimeouts() {
                         it->second.state = ReplicationState::CANCELED;
 
                     } else {
-                        it->second.receivedAt = time(0);
+                        it->second.receivedAt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
                     }                
                 }
@@ -248,7 +256,7 @@ void ReplicationManager::checkTimeouts() {
                         it->second.state = ReplicationState::CANCELED;
 
                     } else {
-                        it->second.receivedAt = time(0);
+                        it->second.receivedAt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
                     }                
                 }
@@ -259,7 +267,7 @@ void ReplicationManager::checkTimeouts() {
 
                 break;
             case COMMITTED:
-                if (difftime(t_now, it->second.receivedAt) > _packetTimeToLive) {
+                if ((t_now - it->second.receivedAt) > _packetTimeToLive) {
                     remove = true;
                 }
 
@@ -287,7 +295,13 @@ bool ReplicationManager::_allMarked(ReplicationData& data) {
     );
 
     return std::all_of(resVec.begin(), resVec.end(), [](bool v) { return v; });
+}
 
+bool ReplicationManager::_allDead() {
+    std::vector<bool> resVec = _dead;
+    resVec[_id] = true;
+
+    return std::all_of(resVec.begin(), resVec.end(), [](bool v) { return v; });
 }
 
 void ReplicationManager::clear() {

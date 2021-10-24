@@ -1,10 +1,11 @@
 
 #pragma once
 
+#include <chrono>
+
 #include <PacketTypes.hpp>
 
 #include <string>
-#include <ctime>
 #include <cstring>
 
 class PacketBuilder {

@@ -213,12 +213,11 @@ void ReplicaConnection::electionState(ElectionManager::Action action) {
     }
 }
 
-bool ReplicaConnection::sendReplication(PacketData::packet_t packet) {
+bool ReplicaConnection::sendReplication(PacketData::packet_t packet, bool ignoreConnected) {
     bool success = false;
 
     if (!_connected) {
-        if (_em.isLeader()) return true;
-        else return false;
+        return ignoreConnected;
     }
 
     auto bytesSent = ServerConnectionManager::dataSend(_sfd, packet);
