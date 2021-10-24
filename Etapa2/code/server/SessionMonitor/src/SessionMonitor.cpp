@@ -32,10 +32,10 @@ SessionController* SessionMonitor::createSession(std::string username, std::stri
     return _sessions[username];
 }
 
-void SessionMonitor::closeSession(std::string username, int csfd, bool sendClose) {
+void SessionMonitor::closeSession(std::string username, int csfd, bool sendClose, bool closeConnection) {
     _mapSem.wait();
 
-    _sessions[username]->closeSession(csfd, sendClose);
+    _sessions[username]->closeSession(csfd, sendClose, closeConnection);
 
     if (_sessions[username]->getNumSessions() == 0) {
         delete _sessions[username];
@@ -57,4 +57,9 @@ void SessionMonitor::freeControl() {
 SessionController* SessionMonitor::getSession(std::string username) {
     if (_sessions.count(username)) return _sessions[username];
     else return nullptr;
+}
+
+
+void SessionMonitor::markDeliveredMessage(std::string userTo, uint64_t messageID) {
+    _mm.markDelivered(userTo, messageID);
 }

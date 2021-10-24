@@ -36,6 +36,9 @@ class ReplicationManager {
 
     void setDead(unsigned short id) { _dead[id] = true; }
     void setAlive(unsigned short id) { _dead[id] = false; }
+    void setEpoch(uint16_t epoch) { _epoch = epoch; }
+
+    void clear();
 
  public:
     ReplicationManager::ReplicationState getMessageState(uint64_t id);
@@ -62,6 +65,7 @@ class ReplicationManager {
     unsigned short _id = 0;
     std::vector<unsigned short> _ids;
     std::vector<bool> _dead;
+    uint16_t _epoch = 0;
 
  private:
     std::map<uint64_t, ReplicationData> _messages;

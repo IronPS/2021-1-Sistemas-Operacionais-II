@@ -10,6 +10,8 @@
 #include <PacketBuilder.hpp>
 #include <MessageManager.hpp>
 
+class ReplicaManager;
+
 class SessionController {
  public:
     SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
@@ -18,13 +20,13 @@ class SessionController {
     bool isValid() const { return _success; }
 
     bool newSession(int csfd, unsigned short listenerPort);
-    void closeSession(int csfd, bool sendClose = true);
+    void closeSession(int csfd, bool sendClose = true, bool closeConnection = true);
     size_t getNumSessions();
 
     void addFollower(std::string follower);
     void sendMessage(std::string message);
 
-    void deliverMessages();
+    void deliverMessages(ReplicaManager&);
 
     SessionController operator=(const SessionController&) = delete;
 

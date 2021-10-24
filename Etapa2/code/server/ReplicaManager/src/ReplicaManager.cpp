@@ -73,8 +73,12 @@ void ReplicaManager::start() {
 
             }
 
+            _rm.setEpoch(_em.epoch());
+
         _em.unblock();
 
+        _rm.clear();
+        
         if (_em.leaderIsAlive()) {
             for (auto conn : _connections) {
                 if (!conn->connected()) {
@@ -109,7 +113,7 @@ void ReplicaManager::start() {
                     auto conn = _connections[_em.getLeaderID()];
 
                     while (_rm.getNextToConfirm(&rep, firstIt)) {
-                        bool res = conn->sendReplication(PacketBuilder::confirmReplication(rep->packet.timestamp));
+                        bool res = conn->sendReplication(PacketBuilder::confirmReplication(_em.epoch(), rep->packet.timestamp));
                         _rm.updateConfirm(*rep, res);
                     }
 
@@ -181,6 +185,7 @@ bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
     uint64_t replicationID = 0;
     
     ReplicationManager::ReplicationState state = ReplicationManager::ReplicationState::SEND;
+    commandPacket.seqn = _em.epoch();
 
     _rmSem.beginRead();
     if (_rm.newReplication(commandPacket, replicationID)) {
@@ -190,6 +195,7 @@ bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
                 state = _rm.getMessageState(replicationID);
             _rmSem.endRead();
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
         } while (
             signaling::_continue
             && state != ReplicationManager::ReplicationState::COMMITTED 
@@ -208,18 +214,84 @@ bool ReplicaManager::waitCommit(PacketData::packet_t commandPacket) {
     return success;
 }
 
-void ReplicaManager::commit(PacketData::packet_t packet) {
+void ReplicaManager::commit(const PacketData::packet_t packet) {
+    size_t strPos1 = 0;
+    size_t strPos2 = 0;
+    int csfd = -1;
+    std::string tmpStr;
+    std::string cmdStr;
+    std::string substr;
+    std::string listenerPort;
+    SessionController* session = nullptr;
+    bool success;
+
     switch (packet.rtype) {
         case PacketData::ReplicationType::R_NEWMESSAGE:
+            session = _sm.getSession(packet.extra);
+            if (session != nullptr) {
+                session->sendMessage(packet.payload);
+            }
+
             break;
           
         case PacketData::ReplicationType::R_DELMESSAGE:
+            _sm.markDeliveredMessage(packet.extra, packet.timestamp);
             break;
          
         case PacketData::ReplicationType::R_SESSION:
+            tmpStr = packet.payload;
+            strPos1 = tmpStr.find(",");
+            
+            if (strPos1 == std::string::npos) return;
+
+            cmdStr = tmpStr.substr(0, strPos1);
+
+            substr = tmpStr.substr(strPos1+1);
+            if (cmdStr == "LOGIN") {
+                strPos2 = substr.find(",");
+
+                if (strPos2 == std::string::npos) return;
+
+                csfd = std::stoi(tmpStr.substr(strPos1+1, strPos2));
+                listenerPort = substr.substr(strPos2+1);
+            
+                _sm.createSession(packet.extra, listenerPort, csfd, success);
+                if (!success) {
+                    std::cout << "Failed to create replicated session to user " << packet.extra << "\n";
+                } else {
+                    std::cout << "Created replicated session to user " << packet.extra << "\n";
+
+                }
+
+            } else if (cmdStr == "CLOSE") {
+                csfd = std::stoi(substr);
+                _sm.closeSession(packet.extra, csfd, false, false);
+                
+                std::cout << "Closed replicated session of user " << packet.extra << "\n";
+            }
+        
             break;
 
-        case PacketData::ReplicationType::R_USER:
+        case PacketData::ReplicationType::R_FOLLOWER:
+            success = true;
+            session = _sm.getSession(packet.extra);
+            if (session != nullptr) {
+                session->addFollower(packet.payload);
+            } else { // No session open
+                User user = _pm.loadUser(packet.extra, false);
+
+                if (user.name() == packet.extra) {
+                    user.addFollower(packet.payload);
+                    _pm.saveUser(user);
+                } else {
+                    success = false;
+                }
+            }
+
+            if (success) {
+                std::cout << "User " << packet.payload << " now following " << packet.extra << " on replica\n";
+            }
+
             break;
             
         case PacketData::ReplicationType::R_CONFIRM:
@@ -229,8 +301,4 @@ void ReplicaManager::commit(PacketData::packet_t packet) {
             break;
 
     }
-}
-
-void ReplicaManager::client(int csfd) {
-    // TODO copy ClientFunctions here
 }

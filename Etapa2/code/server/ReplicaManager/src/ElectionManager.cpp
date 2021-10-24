@@ -64,9 +64,9 @@ void ElectionManager::step() {
     switch(_action) {
         case SendElection:
             _action = Action::WaitAnswer;
-            if (!_printedWaitingElection) {
+            if (!_printedWaitingAnswers) {
                 std::cout << "Waiting answers\n";
-                _printedWaitingElection = true;
+                _printedWaitingAnswers = true;
             }
             break;
 
@@ -78,7 +78,11 @@ void ElectionManager::step() {
             break;
 
         case WaitElection:
-            std::cout << "Waiting election\n";
+            if (!_printedWaitingElection) {
+                std::cout << "Waiting answers\n";
+                std::cout << "Waiting election\n";
+                _printedWaitingElection = true;
+            }
             break;
 
         case None:
@@ -109,6 +113,7 @@ void ElectionManager::_startElection() {
     _action = Action::SendElection;
     _epoch += 1;
 
+    _printedWaitingAnswers = false;
     _printedWaitingElection = false;
 
     time(&_waitAnswerTimer);

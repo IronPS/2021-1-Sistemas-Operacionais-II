@@ -27,8 +27,8 @@ void ReplicationManager::processReceivedPacket(PacketData::packet_t packet, unsi
     switch (packet.rtype) {
         case PacketData::ReplicationType::R_NEWMESSAGE:            
         case PacketData::ReplicationType::R_DELMESSAGE:            
-        case PacketData::ReplicationType::R_SESSION:            
-        case PacketData::ReplicationType::R_USER:
+        case PacketData::ReplicationType::R_SESSION:       
+        case PacketData::ReplicationType::R_FOLLOWER:       
             receivedToReplicate(packet);
             break;
             
@@ -124,6 +124,8 @@ void ReplicationManager::updateSend(ReplicationData& data, unsigned short sentTo
 }
 
 void ReplicationManager::receivedToReplicate(PacketData::packet_t packet) {
+    if (packet.seqn < _epoch) return;
+
     ReplicationData toReplicate = {
         packet,
         time(0),
@@ -285,5 +287,16 @@ bool ReplicationManager::_allMarked(ReplicationData& data) {
     );
 
     return std::all_of(resVec.begin(), resVec.end(), [](bool v) { return v; });
+
+}
+
+void ReplicationManager::clear() {
+    for (auto it = _messages.begin(); it != _messages.end(); /* Nothing */) {
+        if (it->second.packet.seqn < _epoch && !(it->second.state == ReplicationState::COMMIT)) {
+            _messages.erase(it++);
+        } else {
+            it++;
+        }
+    }
 
 }

@@ -1,10 +1,10 @@
 
 cmake_minimum_required(VERSION 3.17)
 
-project(ServerApp-SessionController VERSION 0.0.0)
+project(ServerApp-Server VERSION 0.0.0)
 
 set(SOURCES
-    src/SessionController.cpp
+    src/Server.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -15,9 +15,8 @@ target_include_directories( ${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} 
-    PUBLIC ServerApp-ConnectionManager
-    PUBLIC ServerApp-PersistenceManager
-    PUBLIC ServerApp-MessageManager
-    PUBLIC ServerApp-PersistentUser
     PUBLIC ServerApp-ReplicaManager
+    PUBLIC ServerApp-PersistenceManager
+    PUBLIC ServerApp-SessionMonitor
+    PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )

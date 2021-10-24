@@ -40,7 +40,7 @@ namespace PacketData {
         R_NEWMESSAGE,
         R_DELMESSAGE,
         R_SESSION,
-        R_USER,
+        R_FOLLOWER,
         R_CONFIRM,
         R_NONE
     } ReplicationType;

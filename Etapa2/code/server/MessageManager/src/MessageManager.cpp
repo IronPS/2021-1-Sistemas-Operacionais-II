@@ -40,9 +40,9 @@ void MessageManager::processIncomingMessage(User& creator, const std::string tex
 
 }
 
-PacketData::packet_t MessageManager::getPacket(std::string toUser) {
-    PacketData::packet_t packet;
-    packet.type = PacketData::PacketType::NOTHING;
+PacketData::packet_t MessageManager::getPacket(std::string toUser, bool peek) {
+    message_t message;
+    message.packet.type = PacketData::PacketType::NOTHING;
 
     ProducerConsumerBuffer* buffer = nullptr;
 
@@ -52,9 +52,51 @@ PacketData::packet_t MessageManager::getPacket(std::string toUser) {
     }
     _sem.notify();
 
-    if (buffer == nullptr) return packet;
+    if (buffer == nullptr) return message.packet;
 
-    packet = buffer->dequeue().packet;
+    if (!peek) {
+        do {
+            message = buffer->dequeue();
 
-    return packet;
+        } while (
+            message.packet.type != PacketData::PacketType::NOTHING
+            && message.delivered
+        );
+
+    } else {
+        do {
+            message = buffer->peek();
+            if (
+                message.packet.type != PacketData::PacketType::NOTHING
+                && message.delivered
+            ) {
+                buffer->dequeue();
+            }
+
+        } while (
+            message.packet.type != PacketData::PacketType::NOTHING
+            && message.delivered
+        );
+    }
+
+    if (message.delivered) {
+        message.packet.type = PacketData::PacketType::NOTHING;
+    }
+
+    return message.packet;
+}
+
+void MessageManager::markDelivered(std::string toUser, uint64_t messageID) {
+    ProducerConsumerBuffer* buffer = nullptr;
+
+    _sem.wait();
+    if (_pendingMessages.count(toUser)) {
+        buffer = _pendingMessages[toUser];
+    }
+    _sem.notify();
+
+    if (buffer == nullptr) return;
+
+    buffer->markDelivered(messageID);
+
 }

@@ -57,6 +57,7 @@ class ElectionManager {
     time_t _waitAnswerTimer;
     time_t _waitElectionTimer;
 
+    bool _printedWaitingAnswers = false;
     bool _printedWaitingElection = false;
 
     void _startElection();

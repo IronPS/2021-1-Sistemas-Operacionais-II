@@ -16,9 +16,9 @@ target_include_directories( ${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE ServerApp-ClientFunctions
+    PRIVATE ServerApp-Server
     PRIVATE ServerApp-ConnectionManager
-    PRIVATE ServerApp-ReplicaManager
+    PRIVATE ServerApp-Server
     PRIVATE ServerApp-PersistenceManager
     PRIVATE ServerApp-SessionMonitor
     PRIVATE Common-Stoppable

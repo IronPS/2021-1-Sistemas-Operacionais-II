@@ -155,30 +155,30 @@ PacketData::packet_t PacketBuilder::serverSignal(unsigned short id, PacketData::
     return packet;
 }
 
-packet_t PacketBuilder::replicateMessage(std::string userFrom, std::string userTo, std::string message) {
+packet_t PacketBuilder::replicateMessage(std::string userFrom, std::string message) {
     packet_t packet;
 
     packet.type = REPLICATE;
     packet.rtype = R_NEWMESSAGE;
-    packet.seqn = 0;                        // TODO Ignored
+    packet.seqn = 0;
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
-    strcmp(packet.payload, message.c_str());
-    strcmp(packet.extra, (userFrom + ',' + userTo).c_str());
+    strcpy(packet.payload, message.c_str());
+    strcpy(packet.extra, userFrom.c_str());
 
     return packet;
 }
 
-packet_t PacketBuilder::deleteMessage(std::string userTo, uint64_t messageID) {
+packet_t PacketBuilder::deliveredMessage(std::string userTo, uint64_t messageID) {
     packet_t packet;
 
     packet.type = REPLICATE;
     packet.rtype = R_DELMESSAGE;
-    packet.seqn = 0;                        // TODO Ignored
+    packet.seqn = 0;
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
-    strcmp(packet.payload, std::to_string(messageID).c_str());
-    strcmp(packet.extra, userTo.c_str());
+    strcpy(packet.payload, std::to_string(messageID).c_str());
+    strcpy(packet.extra, userTo.c_str());
 
     return packet;
 }
@@ -188,35 +188,35 @@ packet_t PacketBuilder::replicateSession(std::string username, std::string comma
 
     packet.type = REPLICATE;
     packet.rtype = R_SESSION;
-    packet.seqn = 0;                        // TODO Ignored
+    packet.seqn = 0;
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
-    strcmp(packet.payload, command.c_str()); // "LOGIN" or "CLOSE"
-    strcmp(packet.extra, username.c_str());
+    strcpy(packet.payload, command.c_str()); // "LOGIN,csfd,listener_port" or "CLOSE,csfd"
+    strcpy(packet.extra, username.c_str());
 
     return packet;
 }
 
-packet_t PacketBuilder::replicateUser(std::string username, std::string command) {
+packet_t PacketBuilder::replicateFollower(std::string followee, std::string follower) {
     packet_t packet;
 
     packet.type = REPLICATE;
-    packet.rtype = R_USER;
-    packet.seqn = 0;                        // TODO Ignored
+    packet.rtype = R_FOLLOWER;
+    packet.seqn = 0;
     packet.length = 0;
     packet.timestamp = static_cast<uint64_t>(time(0));
-    strcmp(packet.payload, command.c_str()); // "CREATE" or "ADDFOLLOWER,follower_username"
-    strcmp(packet.extra, username.c_str());
+    strcpy(packet.payload, follower.c_str());  // Follower
+    strcpy(packet.extra, followee.c_str()); // "Followee"
 
     return packet;
 }
 
-packet_t PacketBuilder::confirmReplication(uint64_t timestamp) {
+packet_t PacketBuilder::confirmReplication(uint16_t epoch, uint64_t timestamp) {
     packet_t packet;
 
     packet.type = REPLICATE;
     packet.rtype = R_CONFIRM;
-    packet.seqn = 0;                        // TODO Ignored
+    packet.seqn = epoch;
     packet.length = 0;
     packet.timestamp = timestamp;
     packet.payload[0] = '\0';

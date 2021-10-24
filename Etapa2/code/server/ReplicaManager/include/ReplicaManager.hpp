@@ -22,19 +22,19 @@ class ReplicaManager {
 
     void start();
 
-
+ public:
     bool isLeader() { return _em.isLeader(); }
     bool waitingElection() { return _em.waitingElection(); }
     PacketData::packet_t getLeaderInfo();
 
     static ServerData::server_info_t getNextServerInfo();
 
-    bool waitCommit(PacketData::packet_t commandPacket);
+    bool waitCommit(const PacketData::packet_t commandPacket);
+ 
+ protected:
     void commit(PacketData::packet_t commandPacket);
 
-    void client(int csfd);
-
- private:
+ protected:
     unsigned short _id;
     std::vector<unsigned short> _ids;
     std::vector<std::string> _addresses;
@@ -48,7 +48,7 @@ class ReplicaManager {
     ReplicationManager _rm;
     RWSemaphore _rmSem;
 
- private:
+ protected:
     PersistenceManager& _pm;
     SessionMonitor& _sm;
 };

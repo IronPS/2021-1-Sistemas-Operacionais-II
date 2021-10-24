@@ -72,6 +72,11 @@ void ReplicaConnection::_connect() {
         if (_sfd != -1) {
             _connected = true;
             _first_connection = false;
+
+            struct timeval tv;
+            tv.tv_sec = 0; // 0 seconds
+            tv.tv_usec = 25 * 1000; // 25 milliseconds
+            setsockopt(_sfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         }
 
     } else {
@@ -79,6 +84,11 @@ void ReplicaConnection::_connect() {
         if (_connected) {
             _sfd = _cm->getSFD();
             _first_connection = false;
+
+            struct timeval tv;
+            tv.tv_sec = 0; // 0 seconds
+            tv.tv_usec = 25 * 1000; // 25 milliseconds
+            setsockopt(_sfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
         }
 

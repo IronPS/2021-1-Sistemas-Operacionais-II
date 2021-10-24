@@ -355,7 +355,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Attempting to login as '" << user << "' ... " << std::endl;
 
-    ClientConnectionManager cm(results["server"].as<std::string>(), results["port"].as<unsigned short>());
+    ClientConnectionManager cm(results);
 
     bool logged = login(user, cm);
 
