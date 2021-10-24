@@ -57,8 +57,8 @@ size_t SessionController::getNumSessions() {
     return _numSessions;
 }
 
-void SessionController::sendMessage(std::string message) {
-    _mm.processIncomingMessage(_pUser, message, static_cast<uint64_t>(time(0)));
+void SessionController::sendMessage(std::string message, uint64_t messageID) {
+    _mm.processIncomingMessage(_pUser, message, messageID);
 }
 
 void SessionController::deliverMessages(ReplicaManager& rm) {
@@ -66,12 +66,11 @@ void SessionController::deliverMessages(ReplicaManager& rm) {
     PacketData::packet_t packet = _mm.getPacket(_pUser.name(), true);
 
     while (packet.type != PacketData::PacketType::NOTHING) {
-        std::cout << packet.timestamp << "\n";
         if (!rm.waitCommit(PacketBuilder::deliveredMessage(_username, packet.timestamp))) {
             break;
         }
 
-        _mm.getPacket(_pUser.name(), false); // Dequeue
+        _mm.markDelivered(_pUser.name(), packet.timestamp); // Dequeue
         for (auto sfd : _sessionsSFD) {
             ServerConnectionManager::dataSend(sfd.first, packet);
         }

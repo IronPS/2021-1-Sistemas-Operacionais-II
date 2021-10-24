@@ -11,7 +11,7 @@ MessageManager::~MessageManager() {
     }
 }
 
-void MessageManager::processIncomingMessage(User& creator, const std::string text, const uint64_t timestamp) {
+void MessageManager::processIncomingMessage(User& creator, const std::string text, const uint64_t messageID) {
     _sem.wait();
     for (auto follower : creator.followers()) {
         if (!_pendingMessages.count(follower)) {
@@ -21,10 +21,12 @@ void MessageManager::processIncomingMessage(User& creator, const std::string tex
     _sem.notify();
 
     message_t incoming = {
-        timestamp: timestamp,
+        timestamp: messageID,
         packet: PacketBuilder::message(text, creator.name()),
         delivered: false
     };
+
+    incoming.packet.timestamp = messageID;
 
     std::vector<std::thread> threads;
     _sem.wait();

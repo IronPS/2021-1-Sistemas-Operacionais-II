@@ -144,8 +144,9 @@ void Server::_handleUser(std::string username, int& csfd, SessionController* ses
                 << messageContent
                 << "'" << std::endl;
 
-                if (waitCommit(PacketBuilder::replicateMessage(username, messageContent))) {
-                    session->sendMessage(messageContent);
+                auto messagePacket = PacketBuilder::replicateMessage(username, messageContent);
+                if (waitCommit(messagePacket)) {
+                    session->sendMessage(messageContent, messagePacket.timestamp);
 
                 }
 

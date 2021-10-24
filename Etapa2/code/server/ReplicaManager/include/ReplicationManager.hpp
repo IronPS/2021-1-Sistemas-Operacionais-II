@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 #include <cxxopts/cxxopts.hpp>
 #include <PacketBuilder.hpp>
@@ -24,7 +25,7 @@ class ReplicationManager {
 
     typedef struct s_replication_data {
         PacketData::packet_t packet;
-        time_t receivedAt;
+        uint64_t receivedAt;
         ReplicationState state;
         std::vector<bool> sentTo;
         unsigned short numFailures;
@@ -52,6 +53,8 @@ class ReplicationManager {
     bool getNextToSend(ReplicationData** res, bool firstIt);
     void updateSend(ReplicationData& data, unsigned short sentTo, bool success);
 
+    void checkSent();
+
  public:
     void receivedToReplicate(PacketData::packet_t);
     bool getNextToConfirm(ReplicationData** res, bool firstIt);
@@ -70,11 +73,11 @@ class ReplicationManager {
  private:
     std::map<uint64_t, ReplicationData> _messages;
     unsigned short _maxFailures = 3;
-    unsigned short _packetTimeToLive = 8;
+    unsigned short _packetTimeToLive = 8000; // milliseconds
 
     Semaphore _sem;
 
  private:
     bool _allMarked(ReplicationData& rep);
-
+    bool _allDead();
 };
