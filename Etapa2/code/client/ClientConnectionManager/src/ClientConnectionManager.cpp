@@ -6,7 +6,6 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
     _port = std::to_string(input["port"].as<unsigned short>());
     _listenerPort = std::to_string(input["listener"].as<unsigned short>());
 
-    _openConnection(true, false);
     _createListener();
 
 }
@@ -14,11 +13,16 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
 ClientConnectionManager::ClientConnectionManager(std::string serverAddress, unsigned short serverPort) {
     _server = serverAddress;
     _port = std::to_string(serverPort);
+    _listenerSFD = -1;
 }
 
 ClientConnectionManager::~ClientConnectionManager() {
     if (_clientSFD != -1) {
         close(_clientSFD);
+    }
+    if (_listenerSFD != -1) {
+        close(_listenerSFD);
+
     }
 }
 
@@ -52,7 +56,7 @@ void ClientConnectionManager::_createListener() {
 
     err = getaddrinfo (
         NULL,
-        _port.c_str(),
+        _listenerPort.c_str(),
         &hints,
         &addrs
     );
@@ -154,7 +158,7 @@ bool ClientConnectionManager::setPort(std::string port) {
 }
 
 bool ClientConnectionManager::_openConnection(bool exitOnFail, bool nonBlocking, bool ignoreErrorMessage) {
-    if (_clientSFD != -1) return false;
+    if (_clientSFD != -1) return true;
 
     struct addrinfo hints, *addrs = NULL;
     int err = 0;

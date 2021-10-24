@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include <ElectionManager.hpp>
+#include <ReplicationManager.hpp>
 #include <ServerConnectionManager.hpp>
 #include <ClientConnectionManager.hpp>
 #include <Stoppable.hpp>
@@ -12,15 +13,23 @@
 
 class ReplicaConnection {
  public:
-    ReplicaConnection(ElectionManager& em,
+    ReplicaConnection(ElectionManager& em, ReplicationManager& rm,
                       unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                       unsigned short otherID, std::string otherAddr, unsigned int otherPort);
     ~ReplicaConnection();
+    
+    bool connected() const { return _connected; }
+    unsigned short thisID() const { return _thisID; }
+    unsigned short otherID() const { return _otherID; }
 
+ public:
     void loop();
+    
+ public:
     void electionState(ElectionManager::Action);
 
-    bool connected() const { return _connected; }
+ public:
+    bool sendReplication(PacketData::packet_t packet);
 
  private:
     unsigned short _thisID;
@@ -46,7 +55,7 @@ class ReplicaConnection {
     void _receivePacket(bool ignoreTimeout = false);
 
  private:
-    unsigned int _timeout = 5;
+    unsigned int _timeout = 8;
     time_t _lastReceivedHeartbeat;
 
     void _sendHeartbeat();
@@ -55,6 +64,7 @@ class ReplicaConnection {
 
  private:
     ElectionManager& _em;
+    ReplicationManager& _rm;
 
  private:
     bool _attemptingConnectionMessage = true;

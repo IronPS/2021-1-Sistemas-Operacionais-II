@@ -2,7 +2,7 @@
 #include <ProducerConsumerBuffer.hpp>
 
 ProducerConsumerBuffer::ProducerConsumerBuffer() 
-: _capacitySem(1), _producedSem(1), _writeSem(1), _readSem(1)
+: _capacitySem(1), _producedSem(1), _writeSem(1), _readSem(1), _modifyingFlag(false)
 {
     message_t message;
     message.delivered = true;
@@ -15,6 +15,8 @@ ProducerConsumerBuffer::~ProducerConsumerBuffer() {
 }
 
 void ProducerConsumerBuffer::enqueue(message_t message) {
+    _modifyingFlag.wait();
+
     _capacitySem.wait();
         if (_capacity > 0) {
             _capacity -= 1;
@@ -42,8 +44,10 @@ void ProducerConsumerBuffer::enqueue(message_t message) {
 }
 
 message_t ProducerConsumerBuffer::dequeue() {
+    _modifyingFlag.wait();
+
     message_t message;
-    message.packet.type = PacketData::packet_type::NOTHING;
+    message.packet.type = PacketData::PacketType::NOTHING;
 
     int produced = 0;
     _producedSem.wait();
@@ -60,9 +64,9 @@ message_t ProducerConsumerBuffer::dequeue() {
             _readIndex = (_readIndex + 1) % _maxBufferSize;
         _readSem.notify();
 
-        if (_buffer[index].delivered) {
-            std::cerr << "Error at ProducerConsumerBuffer dequeue: delivering already delivered message!" << std::endl;
-        }
+        // if (_buffer[index].delivered) {
+        //     std::cerr << "Error at ProducerConsumerBuffer dequeue: delivering already delivered message!" << std::endl;
+        // }
 
         message = _buffer[index];
         _buffer[index].delivered = true;
@@ -77,4 +81,49 @@ message_t ProducerConsumerBuffer::dequeue() {
     }
 
     return message;
+}
+
+message_t ProducerConsumerBuffer::peek() {
+    _modifyingFlag.wait();
+
+    message_t message;
+    message.packet.type = PacketData::PacketType::NOTHING;
+
+    int produced = 0;
+    _producedSem.wait();
+
+    produced = _numProduced;
+
+    if (produced > 0) {
+        _producedSem.notify();
+
+        size_t index = 0;
+        _readSem.wait();
+            index = _readIndex;
+        _readSem.notify();
+
+        // if (_buffer[index].delivered) {
+        //     std::cerr << "Error at ProducerConsumerBuffer dequeue: delivering already delivered message!" << std::endl;
+        // }
+
+        message = _buffer[index];
+
+    } else {
+        _producedSem.notify();
+
+    }
+
+    return message;
+}
+
+void ProducerConsumerBuffer::markDelivered(uint64_t messageID) {
+    _modifyingFlag.set();
+
+    for (auto& message : _buffer) {
+        if (message.timestamp == messageID) {
+            message.delivered = true;
+        }
+    }
+
+    _modifyingFlag.unset();
 }

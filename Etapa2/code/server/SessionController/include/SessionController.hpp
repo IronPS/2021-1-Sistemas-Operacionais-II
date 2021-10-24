@@ -10,19 +10,25 @@
 #include <PacketBuilder.hpp>
 #include <MessageManager.hpp>
 
+class ReplicaManager;
+
 class SessionController {
  public:
     SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
     ~SessionController();
 
+    std::string username() const { return _username; }
+
     bool newSession(int csfd, unsigned short listenerPort);
-    void closeSession(int csfd);
+    void closeSession(int csfd, bool sendClose = true, bool closeConnection = true);
     size_t getNumSessions();
 
     void addFollower(std::string follower);
     void sendMessage(std::string message);
 
-    void deliverMessages();
+    void deliverMessages(ReplicaManager&);
+
+    std::map<int, unsigned short> getSessions() { return _sessionsSFD; }
 
     SessionController operator=(const SessionController&) = delete;
 
@@ -31,11 +37,9 @@ class SessionController {
     PersistentUser _pUser;
     int _numSessions = 0;
 
-    std::map<int, unsigned short> _sessionSFD; // Socket file descriptors and listeners
+    std::map<int, unsigned short> _sessionsSFD; // Socket file descriptors and listeners
 
     MessageManager& _mm;
-
-    bool _success = false;
 
     Semaphore _sem;
 

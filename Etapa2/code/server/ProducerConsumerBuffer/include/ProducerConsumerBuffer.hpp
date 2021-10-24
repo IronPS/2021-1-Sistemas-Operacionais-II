@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include <Semaphore.hpp>
+#include <Flag.hpp>
 #include <PacketBuilder.hpp>
 
 typedef struct s_message {
@@ -23,6 +24,9 @@ class ProducerConsumerBuffer {
 
     void enqueue(message_t message);
     message_t dequeue();
+
+    message_t peek();
+    void markDelivered(uint64_t messageID);
 
     size_t size() { return _numProduced; }
 
@@ -42,6 +46,6 @@ class ProducerConsumerBuffer {
     size_t _readIndex = 0;
     Semaphore _readSem;
 
-    
+    Flag _modifyingFlag;    
 
 };

@@ -41,7 +41,7 @@ void ServerConnectionManager::_bindListeningSocket() {
     );
     
     if (err != 0) {
-        std::cerr << "Error at getaddrinfo: "
+        std::cerr << "\n\n\nError at getaddrinfo: "
         << gai_strerror(err)
         << std::endl;
         exit(1);
@@ -64,7 +64,7 @@ void ServerConnectionManager::_bindListeningSocket() {
     }
 
     if (_socketFileDesc == -1) {
-        std::cerr << "Connection error: "
+        std::cerr << "\n\n\nConnection error: "
         << strerror(err)
         << std::endl;
         
@@ -74,7 +74,7 @@ void ServerConnectionManager::_bindListeningSocket() {
     }
 
     if (err != 0) {
-        std::cerr << "Error binding socket "
+        std::cerr << "\n\n\nError binding socket "
         << strerror(err)
         << std::endl;
 
@@ -88,7 +88,7 @@ void ServerConnectionManager::_bindListeningSocket() {
 
     err = listen(_socketFileDesc, _backlog);
     if (err == -1) {
-        std::cerr << "Error listening to socket "
+        std::cerr << "\n\n\nError listening to socket "
         << strerror(errno)
         << std::endl;
         close(_socketFileDesc);

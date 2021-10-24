@@ -70,6 +70,7 @@ User PersistenceManager::loadUser(std::string username, bool create) {
 
     if (mustCreate && create) {
         _privateSaveUser(user);
+
     } else if (mustCreate && !create) {
         user = User("", 0);
     }

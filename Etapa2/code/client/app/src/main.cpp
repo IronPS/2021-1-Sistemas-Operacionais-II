@@ -2,6 +2,7 @@
 #include <thread>
 #include <future>
 #include <chrono>
+#include <algorithm>
 
 #include <parser.hpp>
 #include <Stoppable.hpp>
@@ -15,7 +16,23 @@ static sig_atomic_t closed = false;
 static sig_atomic_t is_over = false;
 static sig_atomic_t server_lost = false;
 static sig_atomic_t print_user = true;
+static unsigned int timeout = 10;
 static Semaphore _sem(1);
+
+bool messageExists(uint64_t timestamp) {
+    static const size_t vsize = 200;
+    static std::vector<uint64_t> timestamps(vsize);
+    static size_t nextIdx = 0;
+
+    if(std::find(timestamps.begin(), timestamps.end(), timestamp) != timestamps.end()) { // Already delivered
+        return true;
+    } else { // Prepare for delivery
+        nextIdx = (nextIdx + 1) % vsize;
+        timestamps[nextIdx] = timestamp;
+
+        return false;
+    }
+}
 
 void printUser(std::string username) {
     static Semaphore sem(1);
@@ -30,18 +47,18 @@ void printUser(std::string username) {
 
 bool login(std::string user, ClientConnectionManager& cm) {
     bool timedOut = false;
-    unsigned int timeout = 10;
     time_t timer;
     time_t t_now;
     bool accepted = false;
 
     time(&timer);
-    while (signaling::_continue && !cm.openConnection(false, false, true)) {
+    while (signaling::_continue && !cm.openConnection(true, false, false)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
         }
         if (timedOut) break;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
     }
 
@@ -50,15 +67,32 @@ bool login(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
-    PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
+    if (!signaling::_continue) return false;
+
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
+    PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
 
-    cm.dataSend(loginPacket);
-
-    ssize_t bytes_received = -1;
     time(&timer);
-    while (signaling::_continue && ((bytes_received = cm.dataReceive(packet)) == -1 || bytes_received == -1)) {
+    
+    ssize_t bytes = -1;
+    while (signaling::_continue && ((bytes = cm.dataSend(loginPacket)) == 0 || bytes == -1)) {
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
+        }
+        if (timedOut) break;
+    }
+    
+    if (timedOut) {
+        std::cout << "Login connection timed-out" << std::endl;
+        return accepted;
+    }
+
+    if (!signaling::_continue) return false;
+
+    time(&timer);
+    while (signaling::_continue && ((bytes = cm.dataReceive(packet)) == 0 || bytes == -1)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
@@ -72,7 +106,7 @@ bool login(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
-    if (bytes_received > 0 && packet.type == PacketData::packet_type::SUCCESS) {
+    if (bytes > 0 && packet.type == PacketData::PacketType::SUCCESS) {
         accepted = true;
 
     }
@@ -85,11 +119,10 @@ bool login(std::string user, ClientConnectionManager& cm) {
 bool reconnect(std::string user, ClientConnectionManager& cm) {
     bool accepted = false;
     bool timedOut = false;
-    unsigned int timeout = 10;
     time_t timer;
     time_t t_now;
     PacketData::packet_t reconPacket = PacketBuilder::login(user, cm.getListenerPort());
-    reconPacket.type = PacketData::packet_type::RECONNECT;
+    reconPacket.type = PacketData::PacketType::RECONNECT;
 
     ServerData::server_info_t sinfo;
 
@@ -116,13 +149,13 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
 
     // Leader connected
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
-    ssize_t bytes_received = -1;
+    ssize_t bytes = -1;
     
     // Waiting packet reception
     time(&timer);
-    while(signaling::_continue && ((bytes_received = ClientConnectionManager::dataReceive(serverSFD, packet)) == -1 || bytes_received == -1)) {
+    while(signaling::_continue && ((bytes = ClientConnectionManager::dataReceive(serverSFD, packet)) == -1 || bytes == -1)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
@@ -136,6 +169,11 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
+    if (!signaling::_continue) {
+        cm.dataSend(PacketBuilder::close());
+        return false;
+    }
+
     // Leader sent new info
     cm.closeConnection();
     ClientConnectionManager::closeConnection(serverSFD);
@@ -144,15 +182,52 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     cm.setAddress(std::string(packet.extra));
     cm.setPort(std::string(packet.payload));
 
-    cm.openConnection(true, false);    
+    std::cout << "Preparing reconnection..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    if (cm.openConnection(true, false)) {  
+        time(&timer);
+        while (signaling::_continue && ((bytes = cm.dataSend(reconPacket)) == 0 || bytes == -1)) {
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+            }
+            if (timedOut) break;
+        }
+
+        if (timedOut) {
+            std::cout << "Reconnection timed-out" << std::endl;
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        time(&timer);
+        while (signaling::_continue && ((bytes = cm.dataReceive(packet)) == 0 || bytes == -1)) {
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+            }
+            if (timedOut) break;
+        }
+
+        if (timedOut) {
+            std::cout << "Reconnection timed-out" << std::endl;
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        if (!signaling::_continue) {
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        if ((bytes > 0) && (bytes != -1) && packet.type == PacketData::PacketType::SUCCESS) {
+            accepted = true;
+        }
+
+        std::cout << packet.payload << std::endl;
     
-    cm.dataSend(reconPacket);
-
-    if ((bytes_received > 0) && (bytes_received != -1) && packet.type == PacketData::packet_type::SUCCESS) {
-        accepted = true;
     }
-
-    std::cout << packet.payload << std::endl;
 
     return accepted;
 }
@@ -187,7 +262,7 @@ bool getline_async(std::string& str, char delim = '\n') {
 void handleUserInput(std::string user, ClientConnectionManager& cm) {
     bool recognized;
     CommandExecutor ce(user, cm);
-
+    
     std::string command;
     printUser(user);
 
@@ -237,37 +312,40 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
     while (!is_over && signaling::_continue) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        packet.type = PacketData::packet_type::NOTHING;
+        packet.type = PacketData::PacketType::NOTHING;
         cm.dataReceive(packet);
 
-        time_t t_now;
-        time(&t_now);
-        if (difftime(t_now, lastHeartbeat) > hbTimeout) {
-            is_over = true;
-            server_lost =  true;
+        if (packet.type == PacketData::PacketType::NOTHING) {
+            time_t t_now;
+            time(&t_now);
+            if (difftime(t_now, lastHeartbeat) > hbTimeout) {
+                is_over = true;
+                server_lost =  true;
 
-            cm.closeConnection();
+                cm.closeConnection();
 
-            _sem.wait();
-                std::cout << "Server Lost" << std::endl;
-            _sem.notify();
+                _sem.wait();
+                    std::cout << "Server Lost" << std::endl;
+                    print_user = true;
+                _sem.notify();
 
-            return;
+                return;
+            }
+
+            continue;
         }
 
-        if (packet.type == PacketData::packet_type::NOTHING) continue;
-
         if (signaling::_continue) {
+            time(&lastHeartbeat); // Every message counts as a heartbeat
 
-            if (packet.type == PacketData::packet_type::HEARTBEAT) {
-                time(&lastHeartbeat);
+            if (packet.type == PacketData::PacketType::HEARTBEAT) {
 
             } else {
                 _sem.wait();
                     std::cout << '\n';  // Get out of user prompt
                 _sem.notify();
 
-                if (packet.type == PacketData::packet_type::CLOSE) {
+                if (packet.type == PacketData::PacketType::CLOSE) {
                     _sem.wait();
                         std::cout   << "\e[1;31m"   // Color RED for Server
                                     << "SERVER: " 
@@ -278,7 +356,9 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
                     is_over = true;
                     closed = true;
                     // No need to recreate user prompt here
-                } else if (packet.type == PacketData::packet_type::MESSAGE) {
+                } else if (packet.type == PacketData::PacketType::MESSAGE) {
+                    if (messageExists(packet.timestamp)) continue;
+
                     _sem.wait();
                         std::cout   << "\e[1;36m"   // Color BLUE (or at least is should be) for normal Creators
                                     << "@" << packet.extra << ": "  // Creator identification
@@ -329,7 +409,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Attempting to login as '" << user << "' ... " << std::endl;
 
-    ClientConnectionManager cm(results["server"].as<std::string>(), results["port"].as<unsigned short>());
+    ClientConnectionManager cm(results);
 
     bool logged = login(user, cm);
 
@@ -348,7 +428,7 @@ int main(int argc, char* argv[]) {
             server_lost = false;
 
             logged = reconnect(user, cm);
-
+            
             if (logged) {
                 launchHandlers(user, cm);
             }

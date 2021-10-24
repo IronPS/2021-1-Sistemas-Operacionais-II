@@ -13,13 +13,15 @@ class SessionMonitor {
     ~SessionMonitor();
 
     SessionController* createSession(std::string username, std::string listenerPort, int csfd, bool& success);
-    void closeSession(std::string username, int csfd);
+    void closeSession(std::string username, int csfd, bool sendClose = true, bool closeConnection = true);
 
     void getControl();
     void freeControl();
 
     SessionController* getSession(std::string username);
+    std::map<std::string, SessionController*>* getSessions() { return &_sessions; }
 
+    void markDeliveredMessage(std::string userTo, uint64_t messageID);
 
  private:
     PersistenceManager& _pm;

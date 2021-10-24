@@ -1,10 +1,10 @@
 
-#include <ReplicaManager.hpp>
+#include <ReplicaConnection.hpp>
 
-ReplicaConnection::ReplicaConnection(ElectionManager& em,
+ReplicaConnection::ReplicaConnection(ElectionManager& em, ReplicationManager& rm,
                                      unsigned short thisID, std::string thisAddr, unsigned int thisPort, 
                                      unsigned short otherID, std::string otherAddr, unsigned int otherPort)
-: _em(em)
+: _em(em), _rm(rm)
 {
     _thisID = thisID;
     _otherID = otherID;
@@ -25,6 +25,8 @@ ReplicaConnection::ReplicaConnection(ElectionManager& em,
 
         assert(_cm);
     }
+
+    time(&_lastSentHeartbeat);
 
 }
 
@@ -70,6 +72,11 @@ void ReplicaConnection::_connect() {
         if (_sfd != -1) {
             _connected = true;
             _first_connection = false;
+
+            struct timeval tv;
+            tv.tv_sec = 0; // 0 seconds
+            tv.tv_usec = 25 * 1000; // 25 milliseconds
+            setsockopt(_sfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         }
 
     } else {
@@ -77,6 +84,11 @@ void ReplicaConnection::_connect() {
         if (_connected) {
             _sfd = _cm->getSFD();
             _first_connection = false;
+
+            struct timeval tv;
+            tv.tv_sec = 0; // 0 seconds
+            tv.tv_usec = 25 * 1000; // 25 milliseconds
+            setsockopt(_sfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
         }
 
@@ -92,7 +104,7 @@ void ReplicaConnection::_connect() {
 
 void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
     PacketData::packet_t packet;
-    packet.type = PacketData::packet_type::NOTHING;
+    packet.type = PacketData::PacketType::NOTHING;
 
     auto bytesReceived = ServerConnectionManager::dataReceive(_sfd, packet);
 
@@ -100,26 +112,34 @@ void ReplicaConnection::_receivePacket(bool ignoreTimeout) {
         time(&_lastReceivedHeartbeat); // Every packet can behave as a heartbeat
 
         switch(packet.type) {
-            case PacketData::packet_type::HEARTBEAT:
+            case PacketData::PacketType::HEARTBEAT:
+                // std::cout << "Received HB from " << _otherID << "\n";
                 break;
 
-            case PacketData::packet_type::ELECTION:
-                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ANSWER, _em.epoch()));
+            case PacketData::PacketType::ELECTION:
+                // std::cout << "Received ELECTION from " << _otherID << "\n";
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::PacketType::ANSWER, _em.epoch()));
                 if (_em.unlockedIsLeader()) {
-                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
+                    ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::PacketType::COORDINATOR, _em.epoch()));
 
                 } else {
                     _em.receivedElection();
                 }
                 break;
 
-            case PacketData::packet_type::ANSWER:
+            case PacketData::PacketType::ANSWER:
                 _em.receivedAnswer(packet.seqn);
-                if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
+                // if (packet.seqn >= _em.epoch()) std::cout << "Received answer from " << _otherID << "\n";
                 break;
 
-            case PacketData::packet_type::COORDINATOR:
+            case PacketData::PacketType::COORDINATOR:
+                // std::cout << "Received COORDINATOR from " << _otherID << "\n";
                 _em.receivedCoordinator(_otherID, packet.seqn);
+                break;
+            
+            case PacketData::PacketType::REPLICATE:
+                // std::cout << "Received REPLICATE from " << _otherID << "\n";
+                _rm.processReceivedPacket(packet, _otherID);
                 break;
 
             default:
@@ -142,6 +162,7 @@ void ReplicaConnection::_sendHeartbeat() {
     time(&now);
 
     if (difftime(now, _lastSentHeartbeat) > _heartbeatInterval) {
+        // std::cout << "Sending HB to " << _otherID << std::endl;
         auto bytesSent = ServerConnectionManager::dataSend(_sfd, PacketBuilder::heartbeat(_thisID));
 
         if (bytesSent > 0 && bytesSent != -1) {
@@ -174,12 +195,12 @@ void ReplicaConnection::electionState(ElectionManager::Action action) {
     switch (action) {
         case ElectionManager::Action::SendElection:
             if (_thisID > _otherID) {
-                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::ELECTION, _em.epoch()));
+                ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::PacketType::ELECTION, _em.epoch()));
             }
             break;
 
         case ElectionManager::Action::SendCoordinator:
-            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::packet_type::COORDINATOR, _em.epoch()));
+            ServerConnectionManager::dataSend(_sfd, PacketBuilder::serverSignal(_thisID, PacketData::PacketType::COORDINATOR, _em.epoch()));
 
             break;
         case ElectionManager::Action::WaitAnswer:
@@ -190,4 +211,21 @@ void ReplicaConnection::electionState(ElectionManager::Action action) {
         case ElectionManager::Action::None:
             break;
     }
+}
+
+bool ReplicaConnection::sendReplication(PacketData::packet_t packet) {
+    bool success = false;
+
+    if (!_connected) {
+        if (_em.isLeader()) return true;
+        else return false;
+    }
+
+    auto bytesSent = ServerConnectionManager::dataSend(_sfd, packet);
+
+    if (bytesSent > 0 && bytesSent != -1) {
+        success = true;
+    }
+
+    return success;
 }

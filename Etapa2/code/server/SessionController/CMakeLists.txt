@@ -19,4 +19,5 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ServerApp-PersistenceManager
     PUBLIC ServerApp-MessageManager
     PUBLIC ServerApp-PersistentUser
+    PUBLIC ServerApp-ReplicaManager
 )

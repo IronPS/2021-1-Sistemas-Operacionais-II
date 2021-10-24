@@ -24,8 +24,15 @@ class PacketBuilder {
 
     static PacketData::packet_t heartbeat(unsigned short id);
     static PacketData::packet_t leaderInfo(std::string address, unsigned short clientPort);
-    static PacketData::packet_t serverSignal(unsigned short id, PacketData::packet_type type, uint16_t epoch);
+    static PacketData::packet_t serverSignal(unsigned short id, PacketData::PacketType type, uint16_t epoch);
 
+    static PacketData::packet_t replicateMessage(std::string userFrom, std::string message);
+    static PacketData::packet_t deliveredMessage(std::string userTo, uint64_t messageID);
+    static PacketData::packet_t replicateSession(std::string username, std::string command);
+    static PacketData::packet_t replicateFollower(std::string followee, std::string follower);
+
+    static PacketData::packet_t confirmReplication(uint16_t epoch, uint64_t timestamp);
+    
  private:
     static const uint _min_username_len = 4;
 };

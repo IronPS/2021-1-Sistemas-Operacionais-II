@@ -1,10 +1,10 @@
 
 cmake_minimum_required(VERSION 3.17)
 
-project(ServerApp-PersistenceManager VERSION 0.0.0)
+project(ServerApp-Server VERSION 0.0.0)
 
 set(SOURCES
-    src/PersistenceManager.cpp
+    src/Server.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -15,6 +15,8 @@ target_include_directories( ${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} 
-    PUBLIC ServerApp-User
-    PUBLIC Common-CriticalSessionControl
+    PUBLIC ServerApp-ReplicaManager
+    PUBLIC ServerApp-PersistenceManager
+    PUBLIC ServerApp-SessionMonitor
+    PRIVATE ${CMAKE_THREAD_LIBS_INIT}
 )
