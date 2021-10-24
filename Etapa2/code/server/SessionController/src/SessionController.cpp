@@ -7,8 +7,6 @@ SessionController::SessionController(std::string username, PersistenceManager& p
 {
     _username = _pUser.name();
 
-    _success = _username == username;
-
 }
 
 SessionController::~SessionController() {
@@ -26,7 +24,7 @@ bool SessionController::newSession(int csfd, unsigned short listenerPort) {
     }
     _numSessions += 1; // Because it will be deleted immediately if failed
 
-    _sessionSFD.insert({csfd, listenerPort});
+    _sessionsSFD.insert({csfd, listenerPort});
 
     _sem.notify();
 
@@ -43,7 +41,7 @@ void SessionController::closeSession(int csfd, bool sendClose, bool closeConnect
 
     if (closeConnection) ServerConnectionManager::closeConnection(csfd);
 
-    _sessionSFD.erase(csfd);
+    _sessionsSFD.erase(csfd);
 
     _sem.notify();
 }
@@ -68,12 +66,13 @@ void SessionController::deliverMessages(ReplicaManager& rm) {
     PacketData::packet_t packet = _mm.getPacket(_pUser.name(), true);
 
     while (packet.type != PacketData::PacketType::NOTHING) {
+        std::cout << packet.timestamp << "\n";
         if (!rm.waitCommit(PacketBuilder::deliveredMessage(_username, packet.timestamp))) {
             break;
         }
 
         _mm.getPacket(_pUser.name(), false); // Dequeue
-        for (auto sfd : _sessionSFD) {
+        for (auto sfd : _sessionsSFD) {
             ServerConnectionManager::dataSend(sfd.first, packet);
         }
 

@@ -44,6 +44,8 @@ void ProducerConsumerBuffer::enqueue(message_t message) {
 }
 
 message_t ProducerConsumerBuffer::dequeue() {
+    _modifyingFlag.wait();
+
     message_t message;
     message.packet.type = PacketData::PacketType::NOTHING;
 
@@ -82,6 +84,8 @@ message_t ProducerConsumerBuffer::dequeue() {
 }
 
 message_t ProducerConsumerBuffer::peek() {
+    _modifyingFlag.wait();
+
     message_t message;
     message.packet.type = PacketData::PacketType::NOTHING;
 
@@ -115,7 +119,7 @@ message_t ProducerConsumerBuffer::peek() {
 void ProducerConsumerBuffer::markDelivered(uint64_t messageID) {
     _modifyingFlag.set();
 
-    for (auto message : _buffer) {
+    for (auto& message : _buffer) {
         if (message.timestamp == messageID) {
             message.delivered = true;
         }

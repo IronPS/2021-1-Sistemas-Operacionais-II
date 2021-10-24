@@ -51,4 +51,7 @@ class ReplicaManager {
  protected:
     PersistenceManager& _pm;
     SessionMonitor& _sm;
+
+    bool _mustUpdateClients = false;
+    void _updateClients();
 };

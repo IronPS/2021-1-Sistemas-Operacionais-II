@@ -17,7 +17,7 @@ class SessionController {
     SessionController(std::string username, PersistenceManager& pm, MessageManager& mm);
     ~SessionController();
 
-    bool isValid() const { return _success; }
+    std::string username() const { return _username; }
 
     bool newSession(int csfd, unsigned short listenerPort);
     void closeSession(int csfd, bool sendClose = true, bool closeConnection = true);
@@ -28,6 +28,8 @@ class SessionController {
 
     void deliverMessages(ReplicaManager&);
 
+    std::map<int, unsigned short> getSessions() { return _sessionsSFD; }
+
     SessionController operator=(const SessionController&) = delete;
 
  private:
@@ -35,13 +37,10 @@ class SessionController {
     PersistentUser _pUser;
     int _numSessions = 0;
 
-    std::map<int, unsigned short> _sessionSFD; // Socket file descriptors and listeners
+    std::map<int, unsigned short> _sessionsSFD; // Socket file descriptors and listeners
 
     MessageManager& _mm;
 
-    bool _success = false;
-
     Semaphore _sem;
-
 
 };

@@ -61,7 +61,10 @@ void ReplicaManager::start() {
 
         _em.block();
 
-            if (!_em.unlockedLeaderIsAlive()) _em.startElection();
+            if (!_em.unlockedLeaderIsAlive()) {
+                _mustUpdateClients = true;
+                _em.startElection();
+            }
             
             while (signaling::_continue && !_em.unlockedLeaderIsAlive()) {
                 ElectionManager::Action action = _em.action();
@@ -76,8 +79,6 @@ void ReplicaManager::start() {
             _rm.setEpoch(_em.epoch());
 
         _em.unblock();
-
-        _rm.clear();
         
         if (_em.leaderIsAlive()) {
             for (auto conn : _connections) {
@@ -88,6 +89,12 @@ void ReplicaManager::start() {
                 }
 
             }
+
+            if (_em.unlockedIsLeader() && _mustUpdateClients) {
+                _updateClients();
+            }
+            _mustUpdateClients = false;
+            _rm.clear();
 
             _rmSem.beginWrite();
 
@@ -138,7 +145,7 @@ void ReplicaManager::start() {
 }
 
 PacketData::packet_t ReplicaManager::getLeaderInfo() {
-    return PacketBuilder::leaderInfo(_addresses[_em.getLeaderID()], _cliPorts[_em.getLeaderID()]);
+    return PacketBuilder::leaderInfo(_addresses[_em.unlockedGetLeaderID()], _cliPorts[_em.unlockedGetLeaderID()]);
 }
 
 unsigned short ReplicaManager::_sinfoPt = 0;
@@ -235,7 +242,8 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
             break;
           
         case PacketData::ReplicationType::R_DELMESSAGE:
-            _sm.markDeliveredMessage(packet.extra, packet.timestamp);
+            std::cout << packet.payload << "\n";
+            _sm.markDeliveredMessage(packet.extra, std::stoi(packet.payload));
             break;
          
         case PacketData::ReplicationType::R_SESSION:
@@ -301,4 +309,70 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
             break;
 
     }
+}
+
+void ReplicaManager::_updateClients() {
+    time_t timer;
+    time_t t_now;
+    bool timedOut = false;
+    double timeout = 0.15; // 150 milliseconds
+
+    _sm.getControl();
+
+        auto sessions = _sm.getSessions();
+
+        for (auto it = sessions->begin(); it != sessions->end(); /* Nothing */) {
+            for (auto sess : it->second->getSessions()) {
+                PacketData::packet_t packet = PacketBuilder::replicateSession(it->second->username(), "CLOSE," + std::to_string(sess.first));
+                packet.seqn = _em.epoch();
+
+                bool res = false;
+                time(&timer);
+                while (!res) {
+                    for (auto conn : _connections) {
+                        res |= conn->sendReplication(packet);
+                    }
+
+                    time(&t_now);
+                    if (difftime(t_now, timer) > timeout) {
+                        timedOut = true;
+                    }
+                    if (timedOut) break;
+                }
+
+                ClientConnectionManager cm("127.0.0.1", sess.second);
+
+                struct timeval tv;
+                tv.tv_sec = 0;
+                tv.tv_usec = 1000; // 10 ms
+                setsockopt(cm.getSFD(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+                
+                time(&timer);
+                while (signaling::_continue && !cm.openConnection(false, false, true)) {
+                    time(&t_now);
+                    if (difftime(t_now, timer) > timeout) {
+                        timedOut = true;
+                    }
+                    if (timedOut) break;
+                }
+                
+                ssize_t bytes_sent = 0;
+                time(&timer);
+                while(signaling::_continue && ((bytes_sent = cm.dataSend(getLeaderInfo())) == 0 || bytes_sent == -1)) {
+                    time(&t_now);
+                    if (difftime(t_now, timer) > timeout) {
+                        timedOut = true;
+                    }
+                    if (timedOut) break;
+                }
+
+            }
+
+            delete it->second;
+            sessions->erase(it++);
+
+        }
+
+
+    _sm.freeControl();
 }

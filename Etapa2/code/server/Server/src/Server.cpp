@@ -41,7 +41,9 @@ void Server::newClient(int csfd) {
             if (connected) {
                 if (packet.type == PacketData::LOGIN) {
                     ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Welcome to Incredible Tvitter!\nSuccessfuly logged in as: ") + username));
-
+                    _handleUser(username, csfd, session);
+                } else if (packet.type == PacketData::RECONNECT) {
+                    ServerConnectionManager::dataSend(csfd, PacketBuilder::success(std::string("Reconnection successful. Logged-in as ") + username));
                     _handleUser(username, csfd, session);
                 }
 

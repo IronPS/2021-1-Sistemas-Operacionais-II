@@ -16,7 +16,7 @@ static sig_atomic_t closed = false;
 static sig_atomic_t is_over = false;
 static sig_atomic_t server_lost = false;
 static sig_atomic_t print_user = true;
-static unsigned int timeout = 15;
+static unsigned int timeout = 10;
 static Semaphore _sem(1);
 
 bool messageExists(uint64_t timestamp) {
@@ -52,12 +52,13 @@ bool login(std::string user, ClientConnectionManager& cm) {
     bool accepted = false;
 
     time(&timer);
-    while (signaling::_continue && !cm.openConnection(false, false, true)) {
+    while (signaling::_continue && !cm.openConnection(true, false, false)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
         }
         if (timedOut) break;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
     }
 
@@ -68,15 +69,30 @@ bool login(std::string user, ClientConnectionManager& cm) {
 
     if (!signaling::_continue) return false;
 
-    PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
     PacketData::packet_t packet;
     packet.type = PacketData::PacketType::NOTHING;
+    PacketData::packet_t loginPacket = PacketBuilder::login(user, cm.getListenerPort());
 
-    cm.dataSend(loginPacket);
-
-    ssize_t bytes_received = -1;
     time(&timer);
-    while (signaling::_continue && ((bytes_received = cm.dataReceive(packet)) == -1 || bytes_received == -1)) {
+    
+    ssize_t bytes = -1;
+    while (signaling::_continue && ((bytes = cm.dataSend(loginPacket)) == 0 || bytes == -1)) {
+        time(&t_now);
+        if (difftime(t_now, timer) > timeout) {
+            timedOut = true;
+        }
+        if (timedOut) break;
+    }
+    
+    if (timedOut) {
+        std::cout << "Login connection timed-out" << std::endl;
+        return accepted;
+    }
+
+    if (!signaling::_continue) return false;
+
+    time(&timer);
+    while (signaling::_continue && ((bytes = cm.dataReceive(packet)) == 0 || bytes == -1)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
@@ -90,7 +106,7 @@ bool login(std::string user, ClientConnectionManager& cm) {
         return accepted;
     }
 
-    if (bytes_received > 0 && packet.type == PacketData::PacketType::SUCCESS) {
+    if (bytes > 0 && packet.type == PacketData::PacketType::SUCCESS) {
         accepted = true;
 
     }
@@ -135,11 +151,11 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     PacketData::packet_t packet;
     packet.type = PacketData::PacketType::NOTHING;
 
-    ssize_t bytes_received = -1;
+    ssize_t bytes = -1;
     
     // Waiting packet reception
     time(&timer);
-    while(signaling::_continue && ((bytes_received = ClientConnectionManager::dataReceive(serverSFD, packet)) == -1 || bytes_received == -1)) {
+    while(signaling::_continue && ((bytes = ClientConnectionManager::dataReceive(serverSFD, packet)) == -1 || bytes == -1)) {
         time(&t_now);
         if (difftime(t_now, timer) > timeout) {
             timedOut = true;
@@ -166,15 +182,52 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     cm.setAddress(std::string(packet.extra));
     cm.setPort(std::string(packet.payload));
 
-    cm.openConnection(true, false);    
+    std::cout << "Preparing reconnection..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    if (cm.openConnection(true, false)) {  
+        time(&timer);
+        while (signaling::_continue && ((bytes = cm.dataSend(reconPacket)) == 0 || bytes == -1)) {
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+            }
+            if (timedOut) break;
+        }
+
+        if (timedOut) {
+            std::cout << "Reconnection timed-out" << std::endl;
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        time(&timer);
+        while (signaling::_continue && ((bytes = cm.dataReceive(packet)) == 0 || bytes == -1)) {
+            time(&t_now);
+            if (difftime(t_now, timer) > timeout) {
+                timedOut = true;
+            }
+            if (timedOut) break;
+        }
+
+        if (timedOut) {
+            std::cout << "Reconnection timed-out" << std::endl;
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        if (!signaling::_continue) {
+            cm.dataSend(PacketBuilder::close());
+            return accepted;
+        }
+
+        if ((bytes > 0) && (bytes != -1) && packet.type == PacketData::PacketType::SUCCESS) {
+            accepted = true;
+        }
+
+        std::cout << packet.payload << std::endl;
     
-    cm.dataSend(reconPacket);
-
-    if ((bytes_received > 0) && (bytes_received != -1) && packet.type == PacketData::PacketType::SUCCESS) {
-        accepted = true;
     }
-
-    std::cout << packet.payload << std::endl;
 
     return accepted;
 }
@@ -273,6 +326,7 @@ void handleServerInput(std::string user, ClientConnectionManager& cm) {
 
                 _sem.wait();
                     std::cout << "Server Lost" << std::endl;
+                    print_user = true;
                 _sem.notify();
 
                 return;
@@ -374,7 +428,7 @@ int main(int argc, char* argv[]) {
             server_lost = false;
 
             logged = reconnect(user, cm);
-
+            
             if (logged) {
                 launchHandlers(user, cm);
             }

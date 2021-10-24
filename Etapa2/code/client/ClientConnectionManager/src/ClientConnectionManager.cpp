@@ -13,6 +13,7 @@ ClientConnectionManager::ClientConnectionManager(const cxxopts::ParseResult& inp
 ClientConnectionManager::ClientConnectionManager(std::string serverAddress, unsigned short serverPort) {
     _server = serverAddress;
     _port = std::to_string(serverPort);
+    _listenerSFD = -1;
 }
 
 ClientConnectionManager::~ClientConnectionManager() {

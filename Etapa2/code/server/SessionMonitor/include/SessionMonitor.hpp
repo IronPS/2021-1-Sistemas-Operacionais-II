@@ -19,6 +19,7 @@ class SessionMonitor {
     void freeControl();
 
     SessionController* getSession(std::string username);
+    std::map<std::string, SessionController*>* getSessions() { return &_sessions; }
 
     void markDeliveredMessage(std::string userTo, uint64_t messageID);
 

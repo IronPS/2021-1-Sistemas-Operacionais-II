@@ -18,11 +18,6 @@ SessionController* SessionMonitor::createSession(std::string username, std::stri
     success = false;
     if (!_sessions.count(username)) {
         SessionController* sess = new SessionController(username, _pm, _mm);
-        if (!sess->isValid()) {
-            delete sess;
-            success = false;
-            return nullptr;
-        }
         _sessions[username] = sess;
     }
     success = _sessions[username]->newSession(csfd, std::atoi(listenerPort.c_str()));
