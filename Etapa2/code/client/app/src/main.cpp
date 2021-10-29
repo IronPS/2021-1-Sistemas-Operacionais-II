@@ -126,8 +126,6 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
 
     ServerData::server_info_t sinfo;
 
-    std::cout << "Waiting for leader" << std::endl;
-
     // Waiting leader to connect on listening port
     int serverSFD = -1;
     time(&timer);
@@ -181,7 +179,6 @@ bool reconnect(std::string user, ClientConnectionManager& cm) {
     // Connecting to Leader
     cm.setAddress(std::string(packet.extra));
     cm.setPort(std::string(packet.payload));
-    std::cout << packet.extra << " "<< packet.payload << "\n";
     std::cout << "Preparing reconnection..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(3));
 

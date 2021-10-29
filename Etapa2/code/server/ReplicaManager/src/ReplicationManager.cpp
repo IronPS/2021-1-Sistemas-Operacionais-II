@@ -49,7 +49,7 @@ bool ReplicationManager::newReplication(PacketData::packet_t packet, uint64_t& i
     bool success = false;
     ReplicationData toReplicate = {
         packet,
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
+        static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()),
         ReplicationState::SEND,
         std::vector<bool>(_ids.size(), 0),
         0
@@ -136,7 +136,7 @@ void ReplicationManager::receivedToReplicate(PacketData::packet_t packet) {
 
     ReplicationData toReplicate = {
         packet,
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
+        static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()),
         ReplicationState::CONFIRM,
         std::vector<bool>(),
         0

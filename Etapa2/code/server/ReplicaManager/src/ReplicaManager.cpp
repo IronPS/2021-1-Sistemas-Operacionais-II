@@ -269,10 +269,10 @@ void ReplicaManager::commit(const PacketData::packet_t packet) {
                 listenerPort = substr.substr(strPos2+1);
             
                 _sm.createSession(packet.extra, listenerPort, csfd, success);
-                if (!success) {
-                    std::cout << "Failed to create replicated session to user " << packet.extra << "\n";
-                } else {
+                if (success) {
                     std::cout << "Created replicated session to user " << packet.extra << "\n";
+                } else {
+                    std::cout << "Failed to create replicated session to user " << packet.extra << "\n";
 
                 }
 
